@@ -2,48 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz Metrics Dashboard</title>
-
-  <!-- Link to the external style.css -->
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mutiny Quiz Hub</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Tab Buttons -->
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('failbase')">Failbase Quiz</div>
-    <div class="tab" onclick="switchTab('job')">Job Quiz</div>
-    <div class="tab" onclick="switchTab('roleplay')">Roleplay Quiz</div>
-  </div>
-
-  <!-- Tab Content -->
-  <div id="failbase" class="tab-content active">
-    <div class="metric-grid" id="failbase-metrics">
-      <!-- Metrics for Failbase Quiz will be injected here -->
+  <div class="overlay">
+    <div class="modal">
+      <h1>Welcome to the Mutiny Quiz Hub</h1>
+      <p>This site is a centralized hub for all quizzes related to Mutiny’s DarkRP server. Select a quiz or view metrics.</p>
+      <button onclick="closeModal()">Enter</button>
     </div>
   </div>
 
-  <div id="job" class="tab-content">
-    <div class="metric-grid" id="job-metrics">
-      <!-- Metrics for Job Quiz will be injected here -->
-    </div>
-  </div>
+  <main class="content hidden">
+    <h2>Available Quizzes</h2>
+    <ul>
+      <li><a href="quiz1.html">Failbase Quiz</a></li>
+      <li><a href="quiz2.html">Job Quiz</a></li>
+      <li><a href="quiz3.html">Roleplay Quiz</a></li>
+    </ul>
+  </main>
 
-  <div id="roleplay" class="tab-content">
-    <div class="metric-grid" id="roleplay-metrics">
-      <!-- Metrics for Roleplay Quiz will be injected here -->
-    </div>
-  </div>
-
-  <!-- Loading message -->
-  <div id="loading-message" class="loading-message">
-    Loading metrics, please wait...
-  </div>
-
-  <!-- Circular Image -->
-  <div class="circular-image"></div>
-
-  <!-- Link to external JavaScript file -->
   <script src="script.js"></script>
 </body>
 </html>
