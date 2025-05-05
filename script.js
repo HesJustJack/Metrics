@@ -1,7 +1,9 @@
 // Function to fetch metrics from the Google Apps Script web app
 async function fetchMetrics() {
+  // Show loading message
+  document.getElementById('loading-message').style.display = 'block';
+
   try {
-    // Use a cache setting for faster response times if available
     const response = await fetch('https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec', {
       cache: 'force-cache'  // Use cached data if available
     });
@@ -36,6 +38,9 @@ async function fetchMetrics() {
   } catch (error) {
     console.error('Error fetching metrics:', error);
   }
+
+  // Hide loading message once data is loaded
+  document.getElementById('loading-message').style.display = 'none';
 }
 
 // Fetch metrics when the page loads
