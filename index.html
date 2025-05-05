@@ -4,79 +4,238 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quiz Metrics Dashboard</title>
-  
-  <!-- Tailwind CSS CDN for styling -->
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-
   <style>
-    /* Custom styling for a darker background */
-    body {
-      background-color: #121212;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #E0E0E0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      font-size: 14px;
+      scroll-behavior: smooth;
+      position: relative;
+      background-color: #121212; /* Dark background */
+    }
+
+    /* Tab Buttons */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin: 40px 0 30px;
+      z-index: 10; /* Ensure tabs are above the background */
+    }
+
+    .tab {
+      background-color: #1E1E1E;
+      color: #03a9f4;
+      padding: 10px 20px;
+      border-radius: 5px;
+      margin: 0 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .tab:hover {
+      background-color: #0288d1;
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .tab.active {
+      background-color: #03a9f4;
+      color: white;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Tab Content */
+    .tab-content {
+      padding: 20px;
+      background-color: transparent; /* Fully transparent background for tab content */
+      width: 95%;
+      max-width: 1200px;
+      display: none;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.4s ease-out;
+      z-index: 5; /* Ensure tab content is above the background but below the metric boxes */
+    }
+
+    .tab-content.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      padding: 10px;
+      width: 100%;
+    }
+
+    .metric-box {
+      background-color: rgba(41, 41, 41, 0.9); /* Slight transparency for readability */
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      z-index: 10; /* Ensure the metric boxes are above the background */
+    }
+
     .metric-box:hover {
       transform: translateY(-6px);
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
     }
-    .metric-box {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    .metric-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, rgba(3, 169, 244, 0.15), rgba(3, 169, 244, 0.35));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 1;
     }
-  </style>
-</head>
 
-<body class="font-sans bg-gray-900 text-white min-h-screen flex flex-col items-center">
-  <!-- Title and Tabs -->
-  <div class="w-full max-w-4xl px-4 mt-8">
-    <h1 class="text-3xl font-semibold text-center mb-8">Quiz Metrics Dashboard</h1>
+    .metric-box:hover::before {
+      opacity: 1;
+    }
 
-    <div class="flex justify-center space-x-4 mb-8">
-      <button id="failbaseTab" class="tab-button py-2 px-4 bg-blue-600 rounded-md text-white hover:bg-blue-700">Failbase Quiz</button>
-      <button id="jobTab" class="tab-button py-2 px-4 bg-blue-600 rounded-md text-white hover:bg-blue-700">Job Quiz</button>
-      <button id="roleplayTab" class="tab-button py-2 px-4 bg-blue-600 rounded-md text-white hover:bg-blue-700">Roleplay Quiz</button>
-    </div>
-    
-    <!-- Metrics Content -->
-    <div id="metricsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <!-- Metrics will be dynamically added here -->
-    </div>
-  </div>
+    .metric-name {
+      font-weight: bold;
+      color: #80CBC4;
+      margin-bottom: 8px;
+      font-size: 16px;
+      z-index: 2;
+      position: relative;
+      letter-spacing: 0.5px;
+    }
 
-  <script>
-    // Fetch and render metrics for the selected tab
-    async function fetchMetrics(sheet) {
-      const response = await fetch('https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec?sheet=' + sheet); // Replace with your Google Apps Script Web App URL
-      const data = await response.json();
+    .metric-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #03a9f4;
+      z-index: 2;
+      position: relative;
+      transition: all 0.3s ease;
+    }
 
-      if (data) {
-        const metricsContainer = document.getElementById('metricsContainer');
-        metricsContainer.innerHTML = ''; // Clear previous content
-        
-        data.forEach(metric => {
-          const metricBox = document.createElement('div');
-          metricBox.className = 'metric-box p-6 bg-gray-800 rounded-lg shadow-md hover:shadow-lg';
-          metricBox.innerHTML = `
-            <h3 class="text-xl font-semibold text-blue-500">${metric.name}</h3>
-            <p class="text-2xl mt-4 text-green-400">${metric.value}</p>
-          `;
-          metricsContainer.appendChild(metricBox);
-        });
-      } else {
-        console.error('Failed to load metrics');
+    .metric-value:hover {
+      color: #0288d1;
+      text-shadow: 0 0 15px rgba(3, 169, 244, 0.7);
+    }
+
+    @media screen and (max-width: 1024px) {
+      .metric-grid {
+        grid-template-columns: repeat(3, 1fr);
       }
     }
 
-    // Activate tabs and load corresponding data
-    document.getElementById('failbaseTab').addEventListener('click', () => {
-      fetchMetrics('Failbase Roster');
-    });
-    document.getElementById('jobTab').addEventListener('click', () => {
-      fetchMetrics('Job Roster');
-    });
-    document.getElementById('roleplayTab').addEventListener('click', () => {
-      fetchMetrics('Roleplay Roster');
-    });
+    @media screen and (max-width: 768px) {
+      .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
 
-    // Default load Failbase Roster metrics on page load
-    fetchMetrics('Failbase Roster');
+    /* Circular Image in the Bottom Right */
+    .circular-image {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-image: url('https://mutinynetwork.com/img/name.webp');
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      z-index: 100; /* Ensure the image stays above all content */
+    }
+  </style>
+</head>
+<body>
+  <!-- Tab Buttons -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('failbase')">Failbase Quiz</div>
+    <div class="tab" onclick="switchTab('job')">Job Quiz</div>
+    <div class="tab" onclick="switchTab('roleplay')">Roleplay Quiz</div>
+  </div>
+
+  <!-- Tab Content -->
+  <div id="failbase" class="tab-content active">
+    <div class="metric-grid" id="failbaseMetrics">
+      <!-- Metrics will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <div id="job" class="tab-content">
+    <div class="metric-grid" id="jobMetrics">
+      <!-- Metrics will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <div id="roleplay" class="tab-content">
+    <div class="metric-grid" id="roleplayMetrics">
+      <!-- Metrics will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <!-- Circular Image -->
+  <div class="circular-image"></div>
+
+  <script>
+    const webAppURL = 'https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec';
+
+    // Fetch and populate metrics
+    async function fetchMetrics(tabName) {
+      const response = await fetch(`${webAppURL}?sheet=${tabName}`);
+      const data = await response.json();
+
+      const metricGrid = document.getElementById(`${tabName}Metrics`);
+      metricGrid.innerHTML = ''; // Clear existing metrics
+
+      data.forEach(metric => {
+        const metricBox = document.createElement('div');
+        metricBox.className = 'metric-box';
+        metricBox.innerHTML = `
+          <div class="metric-name">${metric.name}</div>
+          <div class="metric-value">${metric.value}</div>
+        `;
+        metricGrid.appendChild(metricBox);
+      });
+    }
+
+    // Switch between tabs
+    function switchTab(tabName) {
+      const tabs = document.querySelectorAll('.tab');
+      const contents = document.querySelectorAll('.tab-content');
+
+      tabs.forEach(tab => tab.classList.remove('active'));
+      contents.forEach(content => content.classList.remove('active'));
+
+      document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
+      document.getElementById(tabName).classList.add('active');
+
+      fetchMetrics(tabName); // Fetch and display metrics for the active tab
+    }
+
+    // Load Failbase metrics by default
+    switchTab('failbase');
   </script>
 </body>
 </html>
