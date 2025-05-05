@@ -1,62 +1,67 @@
-// Function to fetch metrics from the Google Apps Script web app
-async function fetchMetrics() {
-  // Show loading message
-  document.getElementById('loading-message').style.display = 'block';
+// Global variables
+let currentView = 'grid';
+let allMetrics = {};
+let filteredMetrics = {};
 
-  try {
-    const response = await fetch('https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec', {
-      cache: 'force-cache'  // Use cached data if available
+// DOM ready function
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize tabs
+  initTabs();
+  
+  // Initialize view toggle
+  initViewToggle();
+  
+  // Initialize search functionality
+  initSearch();
+  
+  // Fetch metrics on page load
+  fetchMetrics();
+  
+  // Initialize theme toggle
+  initThemeToggle();
+  
+  // Set up refresh interval (every 60 seconds)
+  setInterval(fetchMetrics, 60000);
+});
+
+// Initialize tab functionality
+function initTabs() {
+  const tabs = document.querySelectorAll('.tab');
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      // Get tab ID
+      const tabId = this.getAttribute('data-tab');
+      
+      // Remove active class from all tabs and contents
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      // Add active class to current tab and content
+      this.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
     });
-    const data = await response.json();
-
-    // Prepare the HTML content for each tab's metrics in memory
-    const failbaseContent = data.failbase.map(metric => `
-      <div class="metric-box">
-        <div class="metric-name">${metric.name}</div>
-        <div class="metric-value">${metric.value}</div>
-      </div>
-    `).join('');
-
-    const jobContent = data.job.map(metric => `
-      <div class="metric-box">
-        <div class="metric-name">${metric.name}</div>
-        <div class="metric-value">${metric.value}</div>
-      </div>
-    `).join('');
-
-    const roleplayContent = data.roleplay.map(metric => `
-      <div class="metric-box">
-        <div class="metric-name">${metric.name}</div>
-        <div class="metric-value">${metric.value}</div>
-      </div>
-    `).join('');
-
-    // Update all tab contents at once
-    document.getElementById('failbase-metrics').innerHTML = failbaseContent;
-    document.getElementById('job-metrics').innerHTML = jobContent;
-    document.getElementById('roleplay-metrics').innerHTML = roleplayContent;
-  } catch (error) {
-    console.error('Error fetching metrics:', error);
-  }
-
-  // Hide loading message once data is loaded
-  document.getElementById('loading-message').style.display = 'none';
+  });
 }
 
-// Fetch metrics when the page loads
-fetchMetrics();
-
-// Poll the server every 30 seconds to fetch new data
-setInterval(fetchMetrics, 30000);  // 30,000 ms = 30 seconds
-
-// Switch tabs function
-function switchTab(tabName) {
-  const tabs = document.querySelectorAll('.tab');
-  const contents = document.querySelectorAll('.tab-content');
-
-  tabs.forEach(tab => tab.classList.remove('active'));
-  contents.forEach(content => content.classList.remove('active'));
-
-  document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
-  document.getElementById(tabName).classList.add('active');
+// Initialize view toggle functionality
+function initViewToggle() {
+  const viewButtons = document.querySelectorAll('.view-btn');
+  
+  viewButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Get view mode
+      const viewMode = this.getAttribute('data-view');
+      
+      // Update current view
+      currentView = viewMode;
+      
+      // Update active button
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Update metric grids
+      updateMetricGridView();
+    });
+  });
 }
