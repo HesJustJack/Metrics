@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz Metrics</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #eee;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .tabs {
+      display: flex;
+      background: #222;
+      justify-content: center;
+      padding: 10px 0;
+    }
+    .tab {
+      margin: 0 15px;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: #333;
+    }
+    .tab.active {
+      background: #444;
+      font-weight: bold;
+    }
+    .metrics {
+      padding: 20px;
+      display: none;
+    }
+    .metrics.active {
+      display: block;
+    }
+    .metric {
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    @media (max-width: 600px) {
+      .tab {
+        margin: 5px;
+        font-size: 14px;
+      }
+      .metric {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="tabs">
+    <div class="tab active" data-target="failbase">Failbase Roster</div>
+    <div class="tab" data-target="job">Job Roster</div>
+    <div class="tab" data-target="roleplay">Roleplay Roster</div>
+  </div>
+
+  <div id="failbase" class="metrics active"></div>
+  <div id="job" class="metrics"></div>
+  <div id="roleplay" class="metrics"></div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec";
+
+    const metricLabels = {
+      participationRate: "Participation Rate",
+      initialAverage: "Initial Quiz Average",
+      retakeAverage: "Retake Average",
+      highestInitial: "Highest Initial Score",
+      lowestInitial: "Lowest Initial Score",
+      retakeParticipation: "Retake Participation Rate"
+    };
+
+    function renderMetrics(id, data) {
+      const container = document.getElementById(id);
+      container.innerHTML = "";
+      for (const key in metricLabels) {
+        const value = data[key];
+        const text = `${metricLabels[key]}: ${value !== undefined ? value : 'N/A'}`;
+        const div = document.createElement("div");
+        div.className = "metric";
+        div.textContent = text;
+        container.appendChild(div);
+      }
+    }
+
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => {
+        renderMetrics("failbase", data.failbase);
+        renderMetrics("job", data.job);
+        renderMetrics("roleplay", data.roleplay);
+      })
+      .catch(err => {
+        document.body.innerHTML = "<p style='color:red; padding:20px;'>Failed to load metrics.</p>";
+        console.error("Error fetching data:", err);
+      });
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".metrics").forEach(m => m.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(tab.dataset.target).classList.add("active");
+      });
+    });
+  </script>
+
+</body>
+</html>
