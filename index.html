@@ -3,47 +3,198 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz Metrics Dashboard</title>
-
-  <!-- Link to the external style.css -->
+  <title>Quiz Analytics Hub | JustJack</title>
+  <meta name="description" content="Comprehensive analytics dashboard for quiz performance metrics">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Tab Buttons -->
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('failbase')">Failbase Quiz</div>
-    <div class="tab" onclick="switchTab('job')">Job Quiz</div>
-    <div class="tab" onclick="switchTab('roleplay')">Roleplay Quiz</div>
-  </div>
-
-  <!-- Tab Content -->
-  <div id="failbase" class="tab-content active">
-    <div class="metric-grid" id="failbase-metrics">
-      <!-- Metrics for Failbase Quiz will be injected here -->
+  <!-- Header with Navigation -->
+  <header class="main-header">
+    <div class="container header-container">
+      <div class="logo">
+        <h1>Quiz<span>Analytics</span></h1>
+      </div>
+      <nav class="main-nav">
+        <ul>
+          <li><a href="#" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+          <li><a href="#"><i class="fas fa-history"></i> History</a></li>
+          <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+      </nav>
+      <div class="theme-toggle">
+        <i class="fas fa-moon"></i>
+      </div>
     </div>
-  </div>
+  </header>
 
-  <div id="job" class="tab-content">
-    <div class="metric-grid" id="job-metrics">
-      <!-- Metrics for Job Quiz will be injected here -->
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="container">
+      <!-- Dashboard Overview Section -->
+      <section class="dashboard-overview">
+        <div class="overview-header">
+          <h2>Quiz Performance Dashboard</h2>
+          <div class="date-filter">
+            <select id="timeRange">
+              <option value="today">Today</option>
+              <option value="week" selected>This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+            <button class="refresh-btn" onclick="fetchMetrics()">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+          <div class="summary-card" id="total-attempts">
+            <div class="card-icon"><i class="fas fa-users"></i></div>
+            <div class="card-content">
+              <h3>Total Attempts</h3>
+              <p class="card-value">--</p>
+              <p class="card-trend positive"><i class="fas fa-arrow-up"></i> 12% from last period</p>
+            </div>
+          </div>
+          <div class="summary-card" id="completion-rate">
+            <div class="card-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="card-content">
+              <h3>Completion Rate</h3>
+              <p class="card-value">--</p>
+              <p class="card-trend positive"><i class="fas fa-arrow-up"></i> 5% from last period</p>
+            </div>
+          </div>
+          <div class="summary-card" id="avg-score">
+            <div class="card-icon"><i class="fas fa-star"></i></div>
+            <div class="card-content">
+              <h3>Average Score</h3>
+              <p class="card-value">--</p>
+              <p class="card-trend negative"><i class="fas fa-arrow-down"></i> 2% from last period</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tabs-container">
+          <div class="tabs">
+            <div class="tab active" data-tab="failbase">
+              <i class="fas fa-exclamation-triangle"></i> Failbase Quiz
+            </div>
+            <div class="tab" data-tab="job">
+              <i class="fas fa-briefcase"></i> Job Quiz
+            </div>
+            <div class="tab" data-tab="roleplay">
+              <i class="fas fa-theater-masks"></i> Roleplay Quiz
+            </div>
+          </div>
+
+          <!-- Search and Filter Controls -->
+          <div class="tab-controls">
+            <div class="search-box">
+              <input type="text" placeholder="Search metrics..." id="metric-search">
+              <i class="fas fa-search"></i>
+            </div>
+            <div class="view-toggle">
+              <button class="view-btn active" data-view="grid"><i class="fas fa-th"></i></button>
+              <button class="view-btn" data-view="list"><i class="fas fa-list"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="failbase" class="tab-content active">
+          <div class="metric-grid view-mode-grid" id="failbase-metrics">
+            <!-- Metrics for Failbase Quiz will be injected here -->
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+          </div>
+        </div>
+
+        <div id="job" class="tab-content">
+          <div class="metric-grid view-mode-grid" id="job-metrics">
+            <!-- Metrics for Job Quiz will be injected here -->
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+          </div>
+        </div>
+
+        <div id="roleplay" class="tab-content">
+          <div class="metric-grid view-mode-grid" id="roleplay-metrics">
+            <!-- Metrics for Roleplay Quiz will be injected here -->
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+            <div class="placeholder-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Additional Section for Insights -->
+      <section class="insights-section">
+        <h2>Key Insights</h2>
+        <div class="insights-grid">
+          <div class="insight-card">
+            <h3><i class="fas fa-lightbulb"></i> Performance Trends</h3>
+            <div class="chart-container" id="performance-chart">
+              <div class="chart-placeholder">
+                <i class="fas fa-chart-line"></i>
+                <p>Chart visualization will appear here</p>
+              </div>
+            </div>
+            <p class="insight-description">Quiz completion rates have improved by 15% over the last month, indicating better user engagement.</p>
+          </div>
+          <div class="insight-card">
+            <h3><i class="fas fa-rocket"></i> Improvement Areas</h3>
+            <ul class="improvement-list">
+              <li>Increase average score on Job Quiz section 3</li>
+              <li>Reduce dropout rate on Failbase Quiz final questions</li>
+              <li>Improve first-attempt success rate across all quizzes</li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </div>
-  </div>
+  </main>
 
-  <div id="roleplay" class="tab-content">
-    <div class="metric-grid" id="roleplay-metrics">
-      <!-- Metrics for Roleplay Quiz will be injected here -->
+  <!-- Footer -->
+  <footer class="main-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <p>© 2025 QuizAnalytics by JustJack</p>
+        </div>
+        <div class="footer-links">
+          <a href="#">About</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Contact</a>
+        </div>
+        <div class="social-links">
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-github"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
     </div>
+  </footer>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Loading your analytics data...</p>
   </div>
 
-  <!-- Loading message -->
-  <div id="loading-message" class="loading-message">
-    Loading metrics, please wait...
+  <!-- Branding -->
+  <div class="brand-watermark">
+    <img src="https://mutinynetwork.com/img/name.webp" alt="JustJack Logo">
   </div>
 
-  <!-- Circular Image -->
-  <div class="circular-image"></div>
-
-  <!-- Link to external JavaScript file -->
+  <!-- Scripts -->
   <script src="script.js"></script>
 </body>
 </html>
