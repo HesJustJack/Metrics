@@ -4,40 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Mutiny Quiz Hub</title>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="overlay" id="introPopup">
-    <div class="popup-content">
+  <div class="overlay">
+    <div class="modal">
       <h1>Welcome to the Mutiny Quiz Hub</h1>
-      <p>This hub contains all staff quizzes, metrics, and results from Google Forms.</p>
-      <button onclick="closePopup()">Enter</button>
+      <p>This site is a centralized hub for all quizzes related to Mutiny’s DarkRP server. Select a quiz or view metrics.</p>
+      <button onclick="closeModal()">Enter</button>
     </div>
   </div>
 
-  <header>
-    <h1>Mutiny Quiz Hub</h1>
-    <nav>
-      <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="failbase.html">Failbase Quiz</a></li>
-        <li><a href="job.html">Job Quiz</a></li>
-        <li><a href="roleplay.html">Roleplay Quiz</a></li>
-        <li><a href="metrics.html">Metrics</a></li>
-      </ul>
-    </nav>
-  </header>
-
-  <main>
-    <section>
-      <h2>Select a Quiz</h2>
-      <p>Use the navigation bar to access any quiz or view performance data on the Metrics page.</p>
-    </section>
+  <main class="content hidden">
+    <h2>Available Quizzes</h2>
+    <ul>
+      <li><a href="quiz1.html">Failbase Quiz</a></li>
+      <li><a href="quiz2.html">Job Quiz</a></li>
+      <li><a href="quiz3.html">Roleplay Quiz</a></li>
+    </ul>
   </main>
-
-  <footer>
-    <p>&copy; 2025 Mutiny Servers</p>
-  </footer>
 
   <script src="script.js"></script>
 </body>
