@@ -178,20 +178,20 @@
 
   <!-- Tab Content -->
   <div id="failbase" class="tab-content active">
-    <div class="metric-grid" id="failbaseMetrics">
-      <!-- Metrics will be populated by JavaScript -->
+    <div class="metric-grid" id="failbase-metrics">
+      <!-- Metrics for Failbase Quiz will be injected here -->
     </div>
   </div>
 
   <div id="job" class="tab-content">
-    <div class="metric-grid" id="jobMetrics">
-      <!-- Metrics will be populated by JavaScript -->
+    <div class="metric-grid" id="job-metrics">
+      <!-- Metrics for Job Quiz will be injected here -->
     </div>
   </div>
 
   <div id="roleplay" class="tab-content">
-    <div class="metric-grid" id="roleplayMetrics">
-      <!-- Metrics will be populated by JavaScript -->
+    <div class="metric-grid" id="roleplay-metrics">
+      <!-- Metrics for Roleplay Quiz will be injected here -->
     </div>
   </div>
 
@@ -199,28 +199,42 @@
   <div class="circular-image"></div>
 
   <script>
-    const webAppURL = 'https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec';
+    // Function to fetch metrics from the Google Apps Script web app
+    async function fetchMetrics() {
+      try {
+        const response = await fetch('https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec');
+        const data = await response.json();
+        
+        // Map through the data and inject it into the correct tab's grid
+        document.getElementById('failbase-metrics').innerHTML = data.failbase.map(metric => `
+          <div class="metric-box">
+            <div class="metric-name">${metric.name}</div>
+            <div class="metric-value">${metric.value}</div>
+          </div>
+        `).join('');
 
-    // Fetch and populate metrics
-    async function fetchMetrics(tabName) {
-      const response = await fetch(`${webAppURL}?sheet=${tabName}`);
-      const data = await response.json();
+        document.getElementById('job-metrics').innerHTML = data.job.map(metric => `
+          <div class="metric-box">
+            <div class="metric-name">${metric.name}</div>
+            <div class="metric-value">${metric.value}</div>
+          </div>
+        `).join('');
 
-      const metricGrid = document.getElementById(`${tabName}Metrics`);
-      metricGrid.innerHTML = ''; // Clear existing metrics
-
-      data.forEach(metric => {
-        const metricBox = document.createElement('div');
-        metricBox.className = 'metric-box';
-        metricBox.innerHTML = `
-          <div class="metric-name">${metric.name}</div>
-          <div class="metric-value">${metric.value}</div>
-        `;
-        metricGrid.appendChild(metricBox);
-      });
+        document.getElementById('roleplay-metrics').innerHTML = data.roleplay.map(metric => `
+          <div class="metric-box">
+            <div class="metric-name">${metric.name}</div>
+            <div class="metric-value">${metric.value}</div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error fetching metrics:', error);
+      }
     }
 
-    // Switch between tabs
+    // Fetch metrics when the page loads
+    fetchMetrics();
+
+    // Switch tabs function
     function switchTab(tabName) {
       const tabs = document.querySelectorAll('.tab');
       const contents = document.querySelectorAll('.tab-content');
@@ -230,12 +244,7 @@
 
       document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
       document.getElementById(tabName).classList.add('active');
-
-      fetchMetrics(tabName); // Fetch and display metrics for the active tab
     }
-
-    // Load Failbase metrics by default
-    switchTab('failbase');
   </script>
 </body>
 </html>
