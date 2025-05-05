@@ -1,30 +1,38 @@
 // Function to fetch metrics from the Google Apps Script web app
 async function fetchMetrics() {
   try {
-    const response = await fetch('https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec');
+    // Use a cache setting for faster response times if available
+    const response = await fetch('https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec', {
+      cache: 'force-cache'  // Use cached data if available
+    });
     const data = await response.json();
-    
-    // Map through the data and inject it into the correct tab's grid
-    document.getElementById('failbase-metrics').innerHTML = data.failbase.map(metric => `
+
+    // Prepare the HTML content for each tab's metrics in memory
+    const failbaseContent = data.failbase.map(metric => `
       <div class="metric-box">
         <div class="metric-name">${metric.name}</div>
         <div class="metric-value">${metric.value}</div>
       </div>
     `).join('');
 
-    document.getElementById('job-metrics').innerHTML = data.job.map(metric => `
+    const jobContent = data.job.map(metric => `
       <div class="metric-box">
         <div class="metric-name">${metric.name}</div>
         <div class="metric-value">${metric.value}</div>
       </div>
     `).join('');
 
-    document.getElementById('roleplay-metrics').innerHTML = data.roleplay.map(metric => `
+    const roleplayContent = data.roleplay.map(metric => `
       <div class="metric-box">
         <div class="metric-name">${metric.name}</div>
         <div class="metric-value">${metric.value}</div>
       </div>
     `).join('');
+
+    // Update all tab contents at once
+    document.getElementById('failbase-metrics').innerHTML = failbaseContent;
+    document.getElementById('job-metrics').innerHTML = jobContent;
+    document.getElementById('roleplay-metrics').innerHTML = roleplayContent;
   } catch (error) {
     console.error('Error fetching metrics:', error);
   }
@@ -32,6 +40,9 @@ async function fetchMetrics() {
 
 // Fetch metrics when the page loads
 fetchMetrics();
+
+// Poll the server every 30 seconds to fetch new data
+setInterval(fetchMetrics, 30000);  // 30,000 ms = 30 seconds
 
 // Switch tabs function
 function switchTab(tabName) {
