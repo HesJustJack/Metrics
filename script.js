@@ -516,13 +516,6 @@ function initNavigation() {
       // Get the link target
       const target = this.getAttribute('href');
       
-      // Only proceed if it's a valid target
-      if (!target || target === '#') {
-        // Show dashboard (hide settings if visible)
-        hideSettingsPage();
-        return;
-      }
-      
       // Remove 'active' class from all links
       navLinks.forEach(navLink => navLink.classList.remove('active'));
       
@@ -532,8 +525,11 @@ function initNavigation() {
       // Handle navigation based on target
       if (target === '#settings') {
         showSettingsPage();
+      } else if (target === '#history') {
+        // In the future, we'll show the history page here
+        hideSettingsPage();
       } else {
-        // For other links or default, show dashboard
+        // For Dashboard or default, show dashboard
         hideSettingsPage();
       }
     });
@@ -575,6 +571,12 @@ function hideSettingsPage() {
   const settingsPage = document.getElementById('settings-page');
   if (settingsPage) {
     settingsPage.style.display = 'none';
+  }
+  
+  // Hide history page if it exists
+  const historyPage = document.getElementById('history-page');
+  if (historyPage) {
+    historyPage.style.display = 'none';
   }
 }
 
