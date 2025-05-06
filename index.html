@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quiz Analytics Hub | JustJack</title>
   <meta name="description" content="Comprehensive analytics dashboard for quiz performance metrics">
+  <meta name="theme-color" content="#03a9f4">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!-- Prevent iOS telephone number linking -->
+  <meta name="format-detection" content="telephone=no">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
   <!-- Chart.js for data visualization -->
@@ -14,7 +18,7 @@
 
 <body>
   <!-- Header with Navigation -->
-  <header class="main-header">
+  <header class="main-header" role="banner">
     <div class="container header-container">
       <div class="logo">
         <h1>Quiz<span>Analytics</span></h1>
@@ -26,14 +30,14 @@
           <li><a href="#settings"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
       </nav>
-      <div class="theme-toggle">
+      <div class="theme-toggle" role="button" tabindex="0" aria-label="Toggle theme">
         <i class="fas fa-moon"></i>
       </div>
     </div>
   </header>
 
   <!-- Main Content Area -->
-  <main class="main-content">
+  <main class="main-content" role="main">
     <div class="container">
       <!-- Dashboard Overview Section -->
       <section class="dashboard-overview">
@@ -101,7 +105,7 @@
           <!-- Search and Filter Controls -->
           <div class="tab-controls">
             <div class="search-box">
-              <input type="text" placeholder="Search metrics..." id="metric-search">
+              <input type="text" placeholder="Search metrics..." id="metric-search" aria-label="Search metrics">
               <i class="fas fa-search"></i>
             </div>
             <div class="view-toggle">
@@ -169,7 +173,7 @@
   </main>
 
   <!-- Footer -->
-  <footer class="main-footer">
+  <footer class="main-footer" role="contentinfo">
     <div class="container">
       <div class="footer-content">
         <div class="footer-brand">

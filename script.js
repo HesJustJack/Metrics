@@ -106,6 +106,11 @@ function updateSummaryCards(tabId) {
 
 // Initialize performance chart
 function initPerformanceChart(data) {
+  if (!data || typeof data !== 'object') {
+    console.error('Invalid chart data:', data);
+    return;
+  }
+
   const chartContainer = document.getElementById('performance-chart');
 
   // Clear existing content
@@ -418,7 +423,60 @@ function showErrorMessage(message) {
       document.body.removeChild(banner);
     }
   }, 5000);
-}// Filter metrics based on search term
+}
+
+// Enhanced error handling for metrics population
+function populateMetrics(tabId, metrics) {
+  const metricContainer = document.getElementById(`${tabId}-metrics`);
+  if (!metricContainer) {
+    console.error(`Metric container not found for tab: ${tabId}`);
+    return;
+  }
+
+  // Clear existing content
+  metricContainer.innerHTML = '';
+
+  // Validate metrics
+  if (!Array.isArray(metrics)) {
+    console.error('Invalid metrics data:', metrics);
+    metricContainer.innerHTML = '<div class="no-data">Invalid metrics data received.</div>';
+    return;
+  }
+
+  // Check if metrics exist
+  if (!metrics || metrics.length === 0) {
+    metricContainer.innerHTML = '<div class="no-data">No metrics available for this quiz.</div>';
+    return;
+  }
+
+  // If first metric is a "No Data" message, show that
+  if (metrics.length === 1 && metrics[0].name === 'No Data') {
+    metricContainer.innerHTML = `<div class="no-data">${metrics[0].value}</div>`;
+    return;
+  }
+
+  // Add metrics to the container (skip the Timeframe metric)
+  metrics.filter(metric => metric.name !== 'Timeframe').forEach(metric => {
+    const metricBox = document.createElement('div');
+    metricBox.className = `metric-box view-mode-${currentView}`;
+
+    if (currentView === 'grid') {
+      metricBox.innerHTML = `
+        <h4 class="metric-name">${metric.name}</h4>
+        <div class="metric-value">${metric.value}</div>
+      `;
+    } else {
+      metricBox.innerHTML = `
+        <h4 class="metric-name">${metric.name}</h4>
+        <div class="metric-value">${metric.value}</div>
+      `;
+    }
+
+    metricContainer.appendChild(metricBox);
+  });
+}
+
+// Filter metrics based on search term
 function filterMetrics(searchTerm) {
   if (!searchTerm) {
     filteredMetrics = { ...allMetrics };
@@ -437,7 +495,9 @@ function filterMetrics(searchTerm) {
   populateMetrics('failbase', filteredMetrics.failbase);
   populateMetrics('job', filteredMetrics.job);
   populateMetrics('roleplay', filteredMetrics.roleplay);
-}// Global variables
+}
+
+// Global variables
 let currentView = 'grid';
 let currentTimeframe = 'year'; // Default timeframe
 let allMetrics = {};
@@ -450,37 +510,42 @@ let enableAutoRefresh = true; // Whether auto-refresh is enabled
 // API endpoint for the Google Apps Script
 const API_URL = 'https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec';
 
-// DOM ready function
+// Enhanced initialization check
 document.addEventListener('DOMContentLoaded', function () {
-  // Initialize tabs
-  initTabs();
+  try {
+    // Initialize tabs
+    initTabs();
 
-  // Initialize view toggle
-  initViewToggle();
+    // Initialize view toggle
+    initViewToggle();
 
-  // Initialize search functionality
-  initSearch();
+    // Initialize search functionality
+    initSearch();
 
-  // Initialize timeframe selector
-  initTimeframeSelector();
+    // Initialize timeframe selector
+    initTimeframeSelector();
 
-  // Initialize navigation
-  initNavigation();
+    // Initialize navigation
+    initNavigation();
 
-  // Load saved settings
-  loadSettings();
+    // Load saved settings
+    loadSettings();
 
-  // Fetch metrics on page load
-  fetchMetrics();
+    // Fetch metrics on page load
+    fetchMetrics();
 
-  // Initialize theme toggle
-  initThemeToggle();
+    // Initialize theme toggle
+    initThemeToggle();
 
-  // Initialize refresh button with countdown
-  initRefreshButton();
+    // Initialize refresh button with countdown
+    initRefreshButton();
 
-  // Start the refresh countdown timer
-  startRefreshTimer();
+    // Start the refresh countdown timer
+    startRefreshTimer();
+  } catch (error) {
+    console.error('Initialization error:', error);
+    showErrorMessage('Failed to initialize dashboard. Please refresh the page.');
+  }
 });
 
 // Initialize tab functionality
@@ -872,39 +937,28 @@ function loadSettingsIntoForm() {
   }
 }
 
-// Function to save settings from form to localStorage
+// Enhanced settings management
 function saveSettings() {
   try {
-    // Get form values
-    const defaultTimeframe = document.getElementById('defaultTimeframe').value;
-    const defaultView = document.getElementById('defaultView').value;
-    const newRefreshInterval = parseInt(document.getElementById('refreshInterval').value, 10);
-    const darkMode = document.getElementById('darkMode').checked;
-    const newEnableAutoRefresh = document.getElementById('enableAutoRefresh').checked;
-    const showImprovementAreas = document.getElementById('showImprovementAreas').checked;
-    const showPerformanceChart = document.getElementById('showPerformanceChart').checked;
-
-    // Validate refresh interval
-    const validRefreshInterval = Math.max(10, Math.min(3600, newRefreshInterval || 60));
-
-    // Create settings object
     const settings = {
-      defaultTimeframe,
-      defaultView,
-      refreshInterval: validRefreshInterval,
-      darkMode,
-      enableAutoRefresh: newEnableAutoRefresh,
-      showImprovementAreas,
-      showPerformanceChart
+      defaultTimeframe: document.getElementById('defaultTimeframe')?.value || 'year',
+      defaultView: document.getElementById('defaultView')?.value || 'grid',
+      refreshInterval: parseInt(document.getElementById('refreshInterval')?.value || '60', 10),
+      darkMode: document.getElementById('darkMode')?.checked ?? true,
+      enableAutoRefresh: document.getElementById('enableAutoRefresh')?.checked ?? true,
+      showImprovementAreas: document.getElementById('showImprovementAreas')?.checked ?? true,
+      showPerformanceChart: document.getElementById('showPerformanceChart')?.checked ?? true
     };
 
-    // Save to localStorage
-    localStorage.setItem('quizAnalyticsSettings', JSON.stringify(settings));
+    // Validate settings
+    if (settings.refreshInterval < 10) settings.refreshInterval = 10;
+    if (settings.refreshInterval > 3600) settings.refreshInterval = 3600;
 
-    // Apply settings
+    localStorage.setItem('quizAnalyticsSettings', JSON.stringify(settings));
     applySettings(settings);
   } catch (error) {
     console.error('Error saving settings:', error);
+    showErrorMessage('Failed to save settings. Please try again.');
   }
 }
 
@@ -1236,46 +1290,6 @@ function updateTimeframeIndicator() {
     const parentText = el.parentElement.textContent;
     const newText = parentText.replace(/from [^)]+/, `compared to ${periodText}`);
     el.parentElement.innerHTML = el.parentElement.innerHTML.replace(parentText, newText);
-  });
-}
-
-// Populate metrics for a specific tab
-function populateMetrics(tabId, metrics) {
-  const metricContainer = document.getElementById(`${tabId}-metrics`);
-
-  // Clear existing content
-  metricContainer.innerHTML = '';
-
-  // Check if metrics exist
-  if (!metrics || metrics.length === 0) {
-    metricContainer.innerHTML = '<div class="no-data">No metrics available for this quiz.</div>';
-    return;
-  }
-
-  // If first metric is a "No Data" message, show that
-  if (metrics.length === 1 && metrics[0].name === 'No Data') {
-    metricContainer.innerHTML = `<div class="no-data">${metrics[0].value}</div>`;
-    return;
-  }
-
-  // Add metrics to the container (skip the Timeframe metric)
-  metrics.filter(metric => metric.name !== 'Timeframe').forEach(metric => {
-    const metricBox = document.createElement('div');
-    metricBox.className = `metric-box view-mode-${currentView}`;
-
-    if (currentView === 'grid') {
-      metricBox.innerHTML = `
-        <h4 class="metric-name">${metric.name}</h4>
-        <div class="metric-value">${metric.value}</div>
-      `;
-    } else {
-      metricBox.innerHTML = `
-        <h4 class="metric-name">${metric.name}</h4>
-        <div class="metric-value">${metric.value}</div>
-      `;
-    }
-
-    metricContainer.appendChild(metricBox);
   });
 }
 
