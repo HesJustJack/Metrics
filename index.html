@@ -63,6 +63,9 @@
       </div>
     </header>
 
+    <!-- Add error container after header -->
+    <div id="error-container" class="error-container"></div>
+
     <!-- Main Content Area -->
     <main class="main-content" role="main">
       <div class="container">
@@ -273,10 +276,10 @@
       </div>
     </footer>
 
-    <!-- Loading Overlay -->
+    <!-- Update loading overlay -->
     <div id="loading-overlay" class="loading-overlay">
       <div class="spinner"></div>
-      <p>Loading your analytics data...</p>
+      <p id="loading-message">Loading your analytics data...</p>
     </div>
 
     <!-- Error Banner Template -->
@@ -296,5 +299,28 @@
     <div class="brand-watermark">
       <img src="https://mutinynetwork.com/img/name.webp" alt="JustJack Logo" />
     </div>
+
+    <!-- Add script to handle errors -->
+    <script>
+      function showError(message) {
+        const container = document.getElementById('error-container');
+        if (!container) return;
+
+        const error = document.createElement('div');
+        error.className = 'error-banner';
+        error.innerHTML = `
+          <div class="error-content">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>${message}</p>
+            <button onclick="this.parentElement.parentElement.remove()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(error);
+        setTimeout(() => error.remove(), 5000);
+      }
+    </script>
   </body>
 </html>
