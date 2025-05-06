@@ -182,7 +182,7 @@ function initPerformanceChart(data) {
         },
         title: {
           display: true,
-          text: `Quiz Performance (${currentTimeframe})`,
+          text: getChartTitle(currentTimeframe),
           color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
           font: {
             size: 16
@@ -194,6 +194,24 @@ function initPerformanceChart(data) {
   
   // Update insight description
   updateInsightDescription(data);
+}
+
+// Function to get a more descriptive chart title
+function getChartTitle(timeframe) {
+  switch(timeframe) {
+    case 'today':
+      return 'Today\'s Quiz Performance';
+    case 'week':
+      return 'Weekly Quiz Performance';
+    case 'month':
+      return 'Monthly Quiz Performance';
+    case 'year':
+      return 'Annual Quiz Performance';
+    case 'all':
+      return 'Overall Quiz Performance';
+    default:
+      return `Quiz Performance (${timeframe})`;
+  }
 }
 
 // Get average score from data
@@ -312,35 +330,36 @@ function updateImprovementAreas(data) {
     // Create improvement items
     const items = [];
     
-    // Check participation rates
+    // Check participation rates - use more measured language
     if (failbaseRate && parseFloat(failbaseRate.value) < 70) {
-      items.push('Increase participation in Failbase Quiz (currently ' + failbaseRate.value + ')');
+      items.push(`Consider strategies to increase Failbase Quiz participation (currently at ${failbaseRate.value})`);
     }
     
     if (jobRate && parseFloat(jobRate.value) < 70) {
-      items.push('Improve participation in Job Quiz (currently ' + jobRate.value + ')');
+      items.push(`Job Quiz participation could be improved (currently at ${jobRate.value})`);
     }
     
     if (roleplayRate && parseFloat(roleplayRate.value) < 70) {
-      items.push('Boost participation in Roleplay Quiz (currently ' + roleplayRate.value + ')');
+      items.push(`Roleplay Quiz may need participation incentives (currently at ${roleplayRate.value})`);
     }
     
-    // Check pass rates
+    // Check pass rates - use more varied and constructive language
     if (failbasePass && parseFloat(failbasePass.value) < 80) {
-      items.push('Work on improving Failbase Quiz pass rate (currently ' + failbasePass.value + ')');
+      items.push(`Review Failbase Quiz content to help improve pass rate (currently at ${failbasePass.value})`);
     }
     
     if (jobPass && parseFloat(jobPass.value) < 80) {
-      items.push('Focus on increasing Job Quiz pass rate (currently ' + jobPass.value + ')');
+      items.push(`Consider additional preparation resources for Job Quiz (pass rate: ${jobPass.value})`);
     }
     
     if (roleplayPass && parseFloat(roleplayPass.value) < 80) {
-      items.push('Enhance Roleplay Quiz pass rate (currently ' + roleplayPass.value + ')');
+      items.push(`Explore ways to better prepare staff for Roleplay Quiz (pass rate: ${roleplayPass.value})`);
     }
     
-    // If no specific improvements found, add general suggestion
+    // If no specific improvements found, add supportive suggestion
     if (items.length === 0) {
-      items.push('All metrics are performing well. Consider setting higher targets for next period.');
+      items.push('Current metrics are on target. Consider setting more challenging goals for the next period.');
+      items.push('Explore opportunities to introduce new training content or quiz modules.');
     }
     
     // Add items to the list
@@ -351,7 +370,7 @@ function updateImprovementAreas(data) {
     });
   } catch (error) {
     console.error('Error updating improvement areas:', error);
-    improvementList.innerHTML = '<li>Unable to generate improvement suggestions from the current data.</li>';
+    improvementList.innerHTML = '<li>Insufficient data available to generate specific improvement recommendations.</li>';
   }
 }
 
@@ -1266,7 +1285,7 @@ function fetchMetrics() {
     });
 }
 
-// Update timeframe indicator in UI
+// Improved function for updating the timeframe indicator text
 function updateTimeframeIndicator() {
   // Find all trend elements and update them
   const trendElements = document.querySelectorAll('.card-trend .trend-value');
@@ -1279,24 +1298,24 @@ function updateTimeframeIndicator() {
         periodText = 'yesterday';
         break;
       case 'week':
-        periodText = 'last week';
+        periodText = 'previous week';
         break;
       case 'month':
-        periodText = 'last month';
+        periodText = 'previous month';
         break;
       case 'year':
-        periodText = 'last year';
+        periodText = 'previous year';
         break;
       case 'all':
-        periodText = 'average';
+        periodText = 'overall average';
         break;
       default:
-        periodText = 'last period';
+        periodText = 'previous period';
     }
     
-    // Update the parent's text content
+    // Update the parent's text content with more natural wording
     const parentText = el.parentElement.textContent;
-    const newText = parentText.replace(/from [^)]+/, `from ${periodText}`);
+    const newText = parentText.replace(/from [^)]+/, `compared to ${periodText}`);
     el.parentElement.innerHTML = el.parentElement.innerHTML.replace(parentText, newText);
   });
 }
