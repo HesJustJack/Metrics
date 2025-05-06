@@ -1108,4 +1108,31 @@ ul {
   .view-toggle {
     align-self: flex-end;
   }
+.inline-success {
+  margin-left: 15px;
+  position: static;
+  background-color: var(--success-color);
+  color: white;
+  padding: 8px 12px;
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: none;
+  animation: none;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.inline-success.show {
+  opacity: 1;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 30px;
+  align-items: center;
+}
 }
