@@ -9,6 +9,7 @@ const DOM = {
 // Global state variables
 let currentTimeframe = 'year';
 let allMetrics = {};
+let activeTab = 'failbase'; // Add activeTab state
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   startAutoRefresh();
 
-  // Add tab click handlers
+  // Add tab click handlers with state management
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
       // Remove active class from all tabs and contents
@@ -40,8 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add active class to clicked tab and its content
       tab.classList.add('active');
       const tabId = tab.getAttribute('data-tab');
+      activeTab = tabId; // Update active tab state
       document.getElementById(tabId)?.classList.add('active');
       
+      // Clear existing charts before updating
+      destroyCharts();
       updateDashboard();
     });
   });
@@ -128,7 +132,7 @@ function startAutoRefresh() {
 async function fetchMetrics() {
   toggleLoading(true);
   try {
-    // Replace this URL with your actual Google Apps Script web app URL
+    // This is your Google Apps Script web app URL
     const response = await fetch('https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec?action=getMetrics&timeframe=' + currentTimeframe);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -150,8 +154,14 @@ async function fetchMetrics() {
 }
 
 function updateDashboard() {
-  updateSummaryCards(currentTimeframe);
+  updateSummaryCards(activeTab);
   updateAnalytics();
+  
+  // Display metrics for active tab
+  if (allMetrics[activeTab]) {
+    displayMetrics(allMetrics[activeTab], `${activeTab}-metrics`);
+  }
+  
   initPerformanceChart(allMetrics);
 }
 
@@ -229,6 +239,29 @@ function updateSummaryCards(tabId) {
 }
 
 // Initialize performance chart
+const chartInstances = {
+  performance: null,
+  trend: null,
+  progress: null
+};
+
+function destroyCharts() {
+  Object.values(chartInstances).forEach(chart => {
+    if (chart) {
+      chart.destroy();
+    }
+  });
+  Object.keys(chartInstances).forEach(key => {
+    chartInstances[key] = null;
+  });
+}
+
+// Add chart cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  destroyCharts();
+});
+
+// Fix chartData bug in initPerformanceChart
 function initPerformanceChart(data) {
   if (!data || typeof data !== "object") {
     console.error("Invalid chart data:", data);
@@ -257,94 +290,57 @@ function initPerformanceChart(data) {
       return;
     }
 
-    // Create chart
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       console.error("Failed to get canvas context");
       return;
     }
 
-    // Prepare data for chart
-    const chartData = {
-      labels: ["Failbase Quiz", "Job Quiz", "Roleplay Quiz"],
-      datasets: [
-        {
-          label: "Average Score",
-          data: [
-            parseFloat(getAverageScoreFromData(data.failbase)),
-            parseFloat(getAverageScoreFromData(data.job)),
-            parseFloat(getAverageScoreFromData(data.roleplay)),
-          ],
-          backgroundColor: [
-            "rgba(3, 169, 244, 0.6)",
-            "rgba(255, 87, 34, 0.6)",
-            "rgba(76, 175, 80, 0.6)",
-          ],
-          borderColor: [
-            "rgba(3, 169, 244, 1)",
-            "rgba(255, 87, 34, 1)",
-            "rgba(76, 175, 80, 1)",
-          ],
-          borderWidth: 1,
-        },
-      ],
-    };
+    // Prepare data for chart with validation
+    const scores = [
+      parseFloat(getAverageScoreFromData(data.failbase)) || 0,
+      parseFloat(getAverageScoreFromData(data.job)) || 0,
+      parseFloat(getAverageScoreFromData(data.roleplay)) || 0
+    ];
 
-    // Create chart
-    new Chart(ctx, {
-      type: "bar",
-      data: chartData,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 20,
-            ticks: {
-              color: getComputedStyle(document.documentElement).getPropertyValue(
-                "--text-secondary"
-              ),
-            },
-            grid: {
-              color: "rgba(255, 255, 255, 0.1)",
-            },
-          },
-          x: {
-            ticks: {
-              color: getComputedStyle(document.documentElement).getPropertyValue(
-                "--text-secondary"
-              ),
-            },
-            grid: {
-              color: "rgba(255, 255, 255, 0.1)",
-            },
-          },
-        },
-        plugins: {
-          legend: {
-            labels: {
-              color: getComputedStyle(document.documentElement).getPropertyValue(
-                "--text-primary"
-              ),
-            },
-          },
-          title: {
-            display: true,
-            text: getChartTitle(currentTimeframe),
-            color: getComputedStyle(document.documentElement).getPropertyValue(
-              "--text-primary"
-            ),
-            font: {
-              size: 16,
-            },
-          },
-        },
-      },
-    });
+    // Only create chart if we have valid scores
+    if (scores.some(score => score > 0)) {
+      if (chartInstances.performance) {
+        chartInstances.performance.destroy();
+      }
 
-    // Update insight description
-    updateInsightDescription(data);
+      chartInstances.performance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Failbase Quiz", "Job Quiz", "Roleplay Quiz"],
+          datasets: [{
+            label: "Average Score",
+            data: scores,
+            backgroundColor: [
+              "rgba(3, 169, 244, 0.6)",
+              "rgba(255, 87, 34, 0.6)",
+              "rgba(76, 175, 80, 0.6)",
+            ],
+            borderColor: [
+              "rgba(3, 169, 244, 1)",
+              "rgba(255, 87, 34, 1)",
+              "rgba(76, 175, 80, 1)",
+            ],
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          // ...existing options...
+        }
+      });
+    } else {
+      chartContainer.innerHTML = '<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>No valid scores available</p></div>';
+    }
+
+    // Update insight description if we have valid data
+    if (scores.some(score => score > 0)) {
+      updateInsightDescription(data);
+    }
   } catch (error) {
     console.error("Error creating performance chart:", error);
     if (chartContainer) {
@@ -394,27 +390,35 @@ function updateTrendChart() {
   const trendData = getTrendData();
   const labels = generateTimeLabels();
   
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Score Trends',
-        data: trendData.map(t => t.value),
-        borderColor: 'rgba(3, 169, 244, 1)',
-        tension: 0.4
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 20
+  try {
+    if (chartInstances.trend) {
+      chartInstances.trend.destroy();
+    }
+
+    chartInstances.trend = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Score Trends',
+          data: trendData.map(t => t.value),
+          borderColor: 'rgba(3, 169, 244, 1)',
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 20
+          }
         }
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.error('Error creating trend chart:', error);
+  }
 }
 
 // Add generateTimeLabels function
@@ -495,7 +499,11 @@ function updateProgressTracking() {
   }
   
   try {
-    new Chart(ctx, {
+    if (chartInstances.progress) {
+      chartInstances.progress.destroy();
+    }
+
+    chartInstances.progress = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: Object.keys(progressData),
@@ -635,6 +643,28 @@ function updateInsightDescription(data) {
 
   insightDescription.textContent = 
     `Based on current data, ${bestQuiz} shows the strongest performance with an average score of ${avgScores[bestQuiz].toFixed(1)}.`;
+}
+
+// Add data validation to metrics display
+function displayMetrics(metrics, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!Array.isArray(metrics) || metrics.length === 0) {
+    container.innerHTML = '<div class="no-data">No metrics available</div>';
+    return;
+  }
+
+  container.innerHTML = metrics.map(metric => {
+    const value = metric.value ?? 'N/A';
+    const name = metric.name ?? 'Unknown Metric';
+    return `
+      <div class="metric-box">
+        <h4 class="metric-name">${name}</h4>
+        <p class="metric-value">${value}</p>
+      </div>
+    `;
+  }).join('');
 }
 
 // Additional functions and logic remain unchanged
