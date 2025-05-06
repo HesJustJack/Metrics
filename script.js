@@ -592,15 +592,19 @@ function showSettingsPage() {
   if (insightsSection) insightsSection.style.display = 'none';
   
   // Show settings page
-  const settingsPage = document.getElementById('settings-page');
+  let settingsPage = document.getElementById('settings-page');
   if (!settingsPage) {
     // Create settings page if it doesn't exist yet
     createSettingsPage();
-  } else {
+    settingsPage = document.getElementById('settings-page');
+  }
+  
+  // Show the settings page
+  if (settingsPage) {
     settingsPage.style.display = 'block';
   }
   
-  // Load current settings into form
+  // Always load settings into form whenever the page is shown
   loadSettingsIntoForm();
 }
 
@@ -628,6 +632,8 @@ function hideSettingsPage() {
 
 // Function to create the settings page dynamically
 function createSettingsPage() {
+  console.log("Creating settings page");
+  
   // Create settings page element
   const settingsPage = document.createElement('section');
   settingsPage.id = 'settings-page';
@@ -730,158 +736,19 @@ function createSettingsPage() {
     </div>
   `;
   
-  // Add CSS for the settings page
-  const style = document.createElement('style');
-  style.textContent = `
-    .settings-container {
-      background-color: var(--bg-card);
-      border-radius: var(--border-radius);
-      box-shadow: var(--box-shadow);
-      padding: 24px;
-      margin-top: 20px;
-    }
-    
-    .settings-section {
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .settings-section h3 {
-      color: var(--primary-color);
-      font-size: 18px;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .form-group {
-      margin-bottom: 16px;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--text-primary);
-    }
-    
-    .form-group select,
-    .form-group input[type="number"] {
-      width: 100%;
-      max-width: 300px;
-      padding: 10px;
-      border-radius: var(--border-radius);
-      background-color: var(--bg-secondary);
-      color: var(--text-primary);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .form-group input[type="checkbox"] {
-      margin-right: 8px;
-    }
-    
-    .form-group input[type="checkbox"] + label {
-      display: inline;
-    }
-    
-    .form-group small {
-      display: block;
-      margin-top: 5px;
-      color: var(--text-secondary);
-      font-size: 0.85em;
-    }
-    
-    .settings-actions {
-      display: flex;
-      gap: 15px;
-      margin-top: 30px;
-    }
-    
-    .primary-btn, 
-    .secondary-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      border-radius: var(--border-radius);
-      font-weight: 500;
-      cursor: pointer;
-    }
-    
-    .primary-btn {
-      background-color: var(--primary-color);
-      color: white;
-    }
-    
-    .primary-btn:hover {
-      background-color: var(--primary-dark);
-    }
-    
-    .secondary-btn {
-      background-color: var(--bg-secondary);
-      color: var(--text-primary);
-    }
-    
-    .secondary-btn:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-    
-    /* Success message display */
-    .success-message {
-      background-color: var(--success-color);
-      color: white;
-      padding: 12px 16px;
-      border-radius: var(--border-radius);
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      opacity: 0;
-      transform: translateY(-20px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-      display: none;
-    }
-    
-    .success-message.show {
-      opacity: 1;
-      transform: translateY(0);
-      display: flex;
-    }
-    
-    .section-description {
-      color: var(--text-secondary);
-      margin-bottom: 20px;
-    }
-    
-    .section-header {
-      margin-bottom: 20px;
-    }
-    
-    .section-header h2 {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    
-    .refresh-btn .countdown {
-      opacity: 0.8;
-      margin-left: 5px;
-      font-size: 0.9em;
-    }
-  `;
-  
-  document.head.appendChild(style);
-  
   // Add the settings page to the main content area
   document.querySelector('.main-content').appendChild(settingsPage);
   
   // Hide the success message by default
-  document.getElementById('settings-success-message').style.display = 'none';
+  const successMessage = document.getElementById('settings-success-message');
+  if (successMessage) {
+    successMessage.style.display = 'none';
+  }
   
   // Initialize settings form events
   initSettingsForm();
+  
+  console.log("Settings page created and initialized");
 }
 
 // Function to initialize settings form
@@ -896,6 +763,10 @@ function initSettingsForm() {
       saveSettings();
       showSuccessMessage();
     });
+    
+    console.log("Settings form submit event listener added");
+  } else {
+    console.error("Settings form not found");
   }
   
   if (resetButton) {
@@ -903,6 +774,10 @@ function initSettingsForm() {
     resetButton.addEventListener('click', function() {
       resetSettingsToDefaults();
     });
+    
+    console.log("Reset button event listener added");
+  } else {
+    console.error("Reset button not found");
   }
 }
 
@@ -926,28 +801,58 @@ function showSuccessMessage() {
 
 // Function to load settings from localStorage into form
 function loadSettingsIntoForm() {
+  console.log("Loading settings into form");
+  
+  // Get form elements
+  const defaultTimeframeSelect = document.getElementById('defaultTimeframe');
+  const defaultViewSelect = document.getElementById('defaultView');
+  const refreshIntervalInput = document.getElementById('refreshInterval');
+  const darkModeCheckbox = document.getElementById('darkMode');
+  const enableAutoRefreshCheckbox = document.getElementById('enableAutoRefresh');
+  const showImprovementAreasCheckbox = document.getElementById('showImprovementAreas');
+  const showPerformanceChartCheckbox = document.getElementById('showPerformanceChart');
+  
+  // Check if elements exist
+  if (!defaultTimeframeSelect || !defaultViewSelect || !refreshIntervalInput || 
+      !darkModeCheckbox || !enableAutoRefreshCheckbox || 
+      !showImprovementAreasCheckbox || !showPerformanceChartCheckbox) {
+    console.error("Form elements not found", {
+      defaultTimeframeSelect,
+      defaultViewSelect,
+      refreshIntervalInput,
+      darkModeCheckbox,
+      enableAutoRefreshCheckbox,
+      showImprovementAreasCheckbox,
+      showPerformanceChartCheckbox
+    });
+    return;
+  }
+  
   try {
     // Get saved settings
     const savedSettings = JSON.parse(localStorage.getItem('quizAnalyticsSettings') || '{}');
+    console.log("Saved settings:", savedSettings);
     
     // Set form values based on saved settings
     if (savedSettings.defaultTimeframe) {
-      document.getElementById('defaultTimeframe').value = savedSettings.defaultTimeframe;
+      defaultTimeframeSelect.value = savedSettings.defaultTimeframe;
     }
     
     if (savedSettings.defaultView) {
-      document.getElementById('defaultView').value = savedSettings.defaultView;
+      defaultViewSelect.value = savedSettings.defaultView;
     }
     
     if (savedSettings.refreshInterval) {
-      document.getElementById('refreshInterval').value = savedSettings.refreshInterval;
+      refreshIntervalInput.value = savedSettings.refreshInterval;
     }
     
-    // Set checkbox values
-    document.getElementById('darkMode').checked = savedSettings.darkMode !== false;
-    document.getElementById('enableAutoRefresh').checked = savedSettings.enableAutoRefresh !== false;
-    document.getElementById('showImprovementAreas').checked = savedSettings.showImprovementAreas !== false;
-    document.getElementById('showPerformanceChart').checked = savedSettings.showPerformanceChart !== false;
+    // Set checkbox values (with default to true if not specified)
+    darkModeCheckbox.checked = savedSettings.darkMode !== false;
+    enableAutoRefreshCheckbox.checked = savedSettings.enableAutoRefresh !== false;
+    showImprovementAreasCheckbox.checked = savedSettings.showImprovementAreas !== false;
+    showPerformanceChartCheckbox.checked = savedSettings.showPerformanceChart !== false;
+    
+    console.log("Settings loaded into form successfully");
   } catch (error) {
     console.error('Error loading settings into form:', error);
   }
