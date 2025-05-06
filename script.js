@@ -16,15 +16,52 @@ document.addEventListener('DOMContentLoaded', () => {
   DOM.metricSearch?.addEventListener('input', handleSearch);
   DOM.timeRange?.addEventListener('change', handleTimeframeChange);
   
+  // Add navigation handlers
+  initializeNavigation();
+  
   // Set initial timeframe
   currentTimeframe = DOM.timeRange?.value || 'year';
   
   // Initial data load
-  fetchMetrics();
+  fetchMetrics().catch(error => {
+    console.error('Failed to fetch metrics:', error);
+    showError('Failed to load metrics data. Please try again later.');
+  });
+  
   startAutoRefresh();
 });
 
-// Fix missing functions
+function initializeNavigation() {
+  const navLinks = document.querySelectorAll('.main-nav a');
+  
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = link.getAttribute('href').substring(1); // Remove #
+      
+      // Update active state
+      navLinks.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+      
+      // Hide all sections
+      document.querySelectorAll('.main-content > .container > section').forEach(section => {
+        section.style.display = 'none';
+      });
+      
+      // Show target section
+      if (targetId === '') {
+        // Show dashboard (first section) for empty href
+        document.querySelector('.dashboard-overview').style.display = 'block';
+      } else {
+        const targetSection = document.getElementById(`${targetId}-section`);
+        if (targetSection) {
+          targetSection.style.display = 'block';
+        }
+      }
+    });
+  });
+}
+
 function handleSearch(event) {
   const searchTerm = event.target.value.toLowerCase();
   document.querySelectorAll('.metric-box').forEach(box => {
@@ -63,13 +100,22 @@ function startAutoRefresh() {
 async function fetchMetrics() {
   toggleLoading(true);
   try {
-    const response = await fetch(`/api/metrics?timeframe=${currentTimeframe}`);
-    if (!response.ok) throw new Error('Failed to fetch metrics');
+    // Replace this URL with your actual Google Apps Script web app URL
+    const response = await fetch('https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec?action=getMetrics&timeframe=' + currentTimeframe);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     
-    allMetrics = await response.json();
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    allMetrics = data;
     updateDashboard();
   } catch (error) {
-    showError('Failed to load metrics data');
+    console.error('Error fetching metrics:', error);
+    showError('Failed to load metrics data: ' + error.message);
   } finally {
     toggleLoading(false);
   }
