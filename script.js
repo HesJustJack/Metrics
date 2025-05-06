@@ -1266,39 +1266,52 @@ function fetchMetrics() {
   fetch(url)
     .then(response => {
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       return response.json();
     })
     .then(data => {
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data format received');
+      }
+
       console.log('Data received:', data);
       allMetrics = data;
       filteredMetrics = { ...data };
 
-      // Populate metrics for each tab
-      populateMetrics('failbase', data.failbase);
-      populateMetrics('job', data.job);
-      populateMetrics('roleplay', data.roleplay);
+      // Only proceed if we have valid data
+      if (data.failbase || data.job || data.roleplay) {
+        // Populate metrics for each tab
+        populateMetrics('failbase', data.failbase);
+        populateMetrics('job', data.job);
+        populateMetrics('roleplay', data.roleplay);
 
-      // Update summary cards for the active tab
-      const activeTab = document.querySelector('.tab.active').getAttribute('data-tab');
-      updateSummaryCards(activeTab);
+        // Update summary cards for the active tab
+        const activeTab = document.querySelector('.tab.active').getAttribute('data-tab');
+        updateSummaryCards(activeTab);
 
-      // Initialize performance chart
-      initPerformanceChart(data);
+        // Initialize performance chart
+        initPerformanceChart(data);
 
-      // Update timeframe indicator
-      updateTimeframeIndicator();
+        // Update timeframe indicator
+        updateTimeframeIndicator();
+
+        // Reset the refresh timer when new data is loaded
+        resetRefreshTimer();
+      } else {
+        throw new Error('No metrics data available');
+      }
 
       hideLoading();
-
-      // Reset the refresh timer when new data is loaded
-      resetRefreshTimer();
     })
     .catch(error => {
       console.error('Error fetching metrics:', error);
       hideLoading();
-      showErrorMessage(`Failed to load metrics data for ${currentTimeframe}. Please try again later.`);
+      
+      // Only show error message if data wasn't loaded successfully
+      if (!allMetrics.failbase && !allMetrics.job && !allMetrics.roleplay) {
+        showErrorMessage(`Failed to load metrics data: ${error.message}`);
+      }
     });
 }
 
@@ -1392,16 +1405,51 @@ function loadHistoryData() {
   const endDate = document.getElementById('history-end-date').value;
   const quizType = document.getElementById('history-quiz-type').value;
 
+  // Add error checking for dates
+  if (!startDate || !endDate) {
+    hideLoading();
+    showErrorMessage('Please select both start and end dates');
+    return;
+  }
+
   fetch(`${API_URL}?action=history&start=${startDate}&end=${endDate}&type=${quizType}`)
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
     .then(data => {
-      displayHistoryData(data);
+      if (!data) {
+        throw new Error('No data received');
+      }
+
+      if (Array.isArray(data) && data.length === 0) {
+        // Show "no data" message in the table instead of error
+        displayHistoryData([]);
+      } else {
+        displayHistoryData(data);
+      }
+      
       hideLoading();
     })
     .catch(error => {
       console.error('Error loading history:', error);
-      showErrorMessage('Failed to load history data');
       hideLoading();
+      
+      // Update the table to show the error state
+      const tbody = document.getElementById('history-table-body');
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="no-data">
+              Failed to load history data. Please try again.
+            </td>
+          </tr>
+        `;
+      }
+      
+      showErrorMessage(`Failed to load history data: ${error.message}`);
     });
 }
 
