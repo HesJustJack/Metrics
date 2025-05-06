@@ -153,46 +153,121 @@ function initThemeToggle() {
   }
 }
 
+// Show loading overlay
+function showLoading() {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  loadingOverlay.classList.add('show');
+}
+
+// Hide loading overlay
+function hideLoading() {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  loadingOverlay.classList.remove('show');
+}
+
+// Show error message
+function showErrorMessage(message) {
+  const template = document.getElementById('error-banner-template');
+  if (!template) {
+    console.error('Error banner template not found');
+    return;
+  }
+  
+  const errorBanner = template.content.cloneNode(true);
+  errorBanner.querySelector('p').textContent = message;
+  
+  const banner = errorBanner.querySelector('.error-banner');
+  document.body.appendChild(banner);
+  
+  // Set up close button
+  banner.querySelector('button').addEventListener('click', function() {
+    banner.remove();
+  });
+  
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    if (banner.parentNode) {
+      banner.remove();
+    }
+  }, 5000);
+}
+
 // Fetch metrics from the API with timeframe
 function fetchMetrics() {
   showLoading();
+  
+  // Add a console log to track fetch requests
+  console.log(`Fetching metrics with timeframe: ${currentTimeframe}`);
   
   // Construct URL with timeframe parameter
   const url = `${API_URL}?timeframe=${currentTimeframe}`;
   
   fetch(url)
     .then(response => {
+      console.log('API response status:', response.status);
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
       }
       return response.json();
     })
     .then(data => {
       console.log('Data received:', data);
+      
+      // Validate that the data has the expected structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data format: Data is not an object');
+      }
+      
+      if (!data.failbase || !data.job || !data.roleplay) {
+        console.warn('Missing expected quiz metrics:', data);
+      }
+      
       allMetrics = data;
       filteredMetrics = { ...data };
       
       // Populate metrics for each tab
-      populateMetrics('failbase', data.failbase);
-      populateMetrics('job', data.job);
-      populateMetrics('roleplay', data.roleplay);
+      try {
+        populateMetrics('failbase', data.failbase || []);
+        populateMetrics('job', data.job || []);
+        populateMetrics('roleplay', data.roleplay || []);
+      } catch (error) {
+        console.error('Error populating metrics:', error);
+        showErrorMessage(`Error displaying metrics: ${error.message}`);
+      }
       
       // Update summary cards for the active tab
-      const activeTab = document.querySelector('.tab.active').getAttribute('data-tab');
-      updateSummaryCards(activeTab);
+      try {
+        const activeTab = document.querySelector('.tab.active').getAttribute('data-tab');
+        updateSummaryCards(activeTab);
+      } catch (error) {
+        console.error('Error updating summary cards:', error);
+      }
       
       // Initialize performance chart
-      initPerformanceChart(data);
+      try {
+        initPerformanceChart(data);
+      } catch (error) {
+        console.error('Error initializing performance chart:', error);
+      }
       
       // Update timeframe indicator
-      updateTimeframeIndicator();
+      try {
+        updateTimeframeIndicator();
+      } catch (error) {
+        console.error('Error updating timeframe indicator:', error);
+      }
       
       hideLoading();
     })
     .catch(error => {
       console.error('Error fetching metrics:', error);
       hideLoading();
-      showErrorMessage(`Failed to load metrics data for ${currentTimeframe}. Please try again later.`);
+      showErrorMessage(`Failed to load metrics data for ${currentTimeframe}. Error: ${error.message}`);
+      
+      // Display placeholder content so UI is not empty
+      populateMetrics('failbase', [{ name: 'API Error', value: 'Could not load data' }]);
+      populateMetrics('job', [{ name: 'API Error', value: 'Could not load data' }]);
+      populateMetrics('roleplay', [{ name: 'API Error', value: 'Could not load data' }]);
     });
 }
 
@@ -234,6 +309,11 @@ function updateTimeframeIndicator() {
 // Populate metrics for a specific tab
 function populateMetrics(tabId, metrics) {
   const metricContainer = document.getElementById(`${tabId}-metrics`);
+  
+  if (!metricContainer) {
+    console.error(`Metric container not found: ${tabId}-metrics`);
+    return;
+  }
   
   // Clear existing content
   metricContainer.innerHTML = '';
@@ -338,6 +418,11 @@ function getTrendData(metrics, tabId) {
 
 // Update summary cards based on the selected tab
 function updateSummaryCards(tabId) {
+  if (!allMetrics || Object.keys(allMetrics).length === 0) {
+    console.warn('No metrics data available to update summary cards');
+    return;
+  }
+  
   let metrics;
   
   switch (tabId) {
@@ -375,11 +460,7 @@ function updateSummaryCards(tabId) {
   
   // Find completion rate
   let completionRateMetric;
-  if (tabId === 'failbase') {
-    completionRateMetric = metrics.find(m => m.name === 'General Participation Rate');
-  } else if (tabId === 'job') {
-    completionRateMetric = metrics.find(m => m.name === 'General Participation Rate');
-  } else {
+  if (tabId === 'failbase' || tabId === 'job' || tabId === 'roleplay') {
     completionRateMetric = metrics.find(m => m.name === 'General Participation Rate');
   }
   
@@ -420,9 +501,29 @@ function updateSummaryCards(tabId) {
   }
 }
 
+// Helper function to get average score (missing in original code)
+function getAverageScoreFromData(quizData) {
+  if (!quizData || !Array.isArray(quizData)) {
+    return '0';
+  }
+  
+  const avgScoreMetric = quizData.find(m => m.name === 'Average First Test Result');
+  
+  if (avgScoreMetric && avgScoreMetric.value !== 'N/A') {
+    return avgScoreMetric.value;
+  }
+  
+  return '0';
+}
+
 // Initialize performance chart
 function initPerformanceChart(data) {
   const chartContainer = document.getElementById('performance-chart');
+  
+  if (!chartContainer) {
+    console.error('Chart container not found: performance-chart');
+    return;
+  }
   
   // Clear existing content
   chartContainer.innerHTML = '';
@@ -433,75 +534,117 @@ function initPerformanceChart(data) {
   chartContainer.appendChild(canvas);
   
   // Check if we have valid data
-  if (!data.failbase || !data.job || !data.roleplay) {
+  if (!data || !data.failbase || !data.job || !data.roleplay) {
     chartContainer.innerHTML = '<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>No data available for the selected timeframe</p></div>';
     return;
   }
   
-  // Prepare data for chart
-  const chartData = {
-    labels: ['Failbase Quiz', 'Job Quiz', 'Roleplay Quiz'],
-    datasets: [{
-      label: 'Average Score',
-      data: [
-        parseFloat(getAverageScoreFromData(data.failbase)),
-        parseFloat(getAverageScoreFromData(data.job)),
-        parseFloat(getAverageScoreFromData(data.roleplay))
-      ],
-      backgroundColor: [
-        'rgba(3, 169, 244, 0.6)',
-        'rgba(255, 87, 34, 0.6)',
-        'rgba(76, 175, 80, 0.6)'
-      ],
-      borderColor: [
-        'rgba(3, 169, 244, 1)',
-        'rgba(255, 87, 34, 1)',
-        'rgba(76, 175, 80, 1)'
-      ],
-      borderWidth: 1
-    }]
-  };
-  
-  // Create chart
-  const ctx = canvas.getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: chartData,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 20,
-          ticks: {
-            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
+  try {
+    // Prepare data for chart
+    const chartData = {
+      labels: ['Failbase Quiz', 'Job Quiz', 'Roleplay Quiz'],
+      datasets: [{
+        label: 'Average Score',
+        data: [
+          parseFloat(getAverageScoreFromData(data.failbase)) || 0,
+          parseFloat(getAverageScoreFromData(data.job)) || 0,
+          parseFloat(getAverageScoreFromData(data.roleplay)) || 0
+        ],
+        backgroundColor: [
+          'rgba(3, 169, 244, 0.6)',
+          'rgba(255, 87, 34, 0.6)',
+          'rgba(76, 175, 80, 0.6)'
+        ],
+        borderColor: [
+          'rgba(3, 169, 244, 1)',
+          'rgba(255, 87, 34, 1)',
+          'rgba(76, 175, 80, 1)'
+        ],
+        borderWidth: 1
+      }]
+    };
+    
+    // Update insight description
+    const insightDescription = document.querySelector('.insight-description');
+    if (insightDescription) {
+      insightDescription.textContent = `Average quiz performance across all three quiz types for ${currentTimeframe}. The highest average score is ${Math.max(...chartData.datasets[0].data).toFixed(1)}.`;
+    }
+    
+    // Update improvement areas
+    const improvementList = document.querySelector('.improvement-list');
+    if (improvementList) {
+      improvementList.innerHTML = '';
+      
+      // Add improvement areas based on scores
+      const areas = [];
+      if (chartData.datasets[0].data[0] < 14) {
+        areas.push('Failbase quiz scores are below passing threshold (14)');
+      }
+      if (chartData.datasets[0].data[1] < 14) {
+        areas.push('Job quiz scores are below passing threshold (14)');
+      }
+      if (chartData.datasets[0].data[2] < 14) {
+        areas.push('Roleplay quiz scores are below passing threshold (14)');
+      }
+      
+      if (areas.length === 0) {
+        areas.push('All quiz types are performing well above passing threshold');
+      }
+      
+      areas.forEach(area => {
+        const li = document.createElement('li');
+        li.textContent = area;
+        improvementList.appendChild(li);
+      });
+    }
+    
+    // Create chart
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: chartData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 20,
+            ticks: {
+              color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
           },
-          grid: {
-            color: 'rgba(255, 255, 255, 0.1)'
+          x: {
+            ticks: {
+              color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
           }
         },
-        x: {
-          ticks: {
-            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
+        plugins: {
+          legend: {
+            labels: {
+              color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
+            }
           },
-          grid: {
-            color: 'rgba(255, 255, 255, 0.1)'
-          }
-        }
-      },
-      plugins: {
-        legend: {
-          labels: {
-            color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
-          }
-        },
-        title: {
-          display: true,
-          text: `Quiz Performance (${currentTimeframe})`,
-          color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
-          font: {
-            size: 16
+          title: {
+            display: true,
+            text: `Quiz Performance (${currentTimeframe})`,
+            color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+            font: {
+              size: 16
+            }
           }
         }
       }
+    });
+  } catch (error) {
+    console.error('Error creating chart:', error);
+    chartContainer.innerHTML = `<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>Error creating chart: ${error.message}</p></div>`;
+  }
+}
