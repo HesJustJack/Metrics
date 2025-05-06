@@ -1405,7 +1405,6 @@ function loadHistoryData() {
   const endDate = document.getElementById('history-end-date').value;
   const quizType = document.getElementById('history-quiz-type').value;
 
-  // Add error checking for dates
   if (!startDate || !endDate) {
     hideLoading();
     showErrorMessage('Please select both start and end dates');
@@ -1413,22 +1412,11 @@ function loadHistoryData() {
   }
 
   fetch(`${API_URL}?action=history&start=${startDate}&end=${endDate}&type=${quizType}`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    .then(response => response.json())
+    .then(records => {
+      if (!Array.isArray(records) || records.length === 0) {
+        throw new Error('No history data available for the selected period');
       }
-      return response.json();
-    })
-    .then(data => {
-      // Validate data structure
-      if (!data) {
-        throw new Error('No data received');
-      }
-
-      // If data is an object with records property, use that
-      const records = Array.isArray(data) ? data : 
-                     Array.isArray(data.records) ? data.records : 
-                     [];
 
       displayHistoryData(records);
       hideLoading();
@@ -1437,19 +1425,14 @@ function loadHistoryData() {
       console.error('Error loading history:', error);
       hideLoading();
       
-      // Update the table to show the error state
       const tbody = document.getElementById('history-table-body');
-      if (tbody) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="no-data">
-              Failed to load history data. Please try again.
-            </td>
-          </tr>
-        `;
-      }
-      
-      showErrorMessage(`Failed to load history data: ${error.message}`);
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="no-data">
+            ${error.message || 'Failed to load history data'}
+          </td>
+        </tr>
+      `;
     });
 }
 
