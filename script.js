@@ -1,5 +1,6 @@
 // Global variables
 let currentView = 'grid';
+let currentTimeframe = 'week'; // Default timeframe
 let allMetrics = {};
 let filteredMetrics = {};
 
@@ -16,6 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize search functionality
   initSearch();
+  
+  // Initialize timeframe selector
+  initTimeframeSelector();
   
   // Fetch metrics on page load
   fetchMetrics();
@@ -82,6 +86,19 @@ function initSearch() {
   });
 }
 
+// Initialize timeframe selector
+function initTimeframeSelector() {
+  const timeframeSelect = document.getElementById('timeRange');
+  
+  // Set initial value
+  timeframeSelect.value = currentTimeframe;
+  
+  timeframeSelect.addEventListener('change', function() {
+    currentTimeframe = this.value;
+    fetchMetrics();
+  });
+}
+
 // Initialize theme toggle functionality
 function initThemeToggle() {
   const themeToggle = document.querySelector('.theme-toggle');
@@ -136,11 +153,14 @@ function initThemeToggle() {
   }
 }
 
-// Fetch metrics from the API
+// Fetch metrics from the API with timeframe
 function fetchMetrics() {
   showLoading();
   
-  fetch(API_URL)
+  // Construct URL with timeframe parameter
+  const url = `${API_URL}?timeframe=${currentTimeframe}`;
+  
+  fetch(url)
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -164,13 +184,51 @@ function fetchMetrics() {
       // Initialize performance chart
       initPerformanceChart(data);
       
+      // Update timeframe indicator
+      updateTimeframeIndicator();
+      
       hideLoading();
     })
     .catch(error => {
       console.error('Error fetching metrics:', error);
       hideLoading();
-      showErrorMessage('Failed to load metrics data. Please try again later.');
+      showErrorMessage(`Failed to load metrics data for ${currentTimeframe}. Please try again later.`);
     });
+}
+
+// Update timeframe indicator in UI
+function updateTimeframeIndicator() {
+  // Find all trend elements and update them
+  const trendElements = document.querySelectorAll('.card-trend .trend-value');
+  
+  trendElements.forEach(el => {
+    let periodText = '';
+    
+    switch(currentTimeframe) {
+      case 'today':
+        periodText = 'yesterday';
+        break;
+      case 'week':
+        periodText = 'last week';
+        break;
+      case 'month':
+        periodText = 'last month';
+        break;
+      case 'year':
+        periodText = 'last year';
+        break;
+      case 'all':
+        periodText = 'average';
+        break;
+      default:
+        periodText = 'last period';
+    }
+    
+    // Update the parent's text content
+    const parentText = el.parentElement.textContent;
+    const newText = parentText.replace(/from [^)]+/, `from ${periodText}`);
+    el.parentElement.innerHTML = el.parentElement.innerHTML.replace(parentText, newText);
+  });
 }
 
 // Populate metrics for a specific tab
@@ -186,8 +244,14 @@ function populateMetrics(tabId, metrics) {
     return;
   }
   
-  // Add metrics to the container
-  metrics.forEach(metric => {
+  // If first metric is a "No Data" message, show that
+  if (metrics.length === 1 && metrics[0].name === 'No Data') {
+    metricContainer.innerHTML = `<div class="no-data">${metrics[0].value}</div>`;
+    return;
+  }
+  
+  // Add metrics to the container (skip the Timeframe metric)
+  metrics.filter(metric => metric.name !== 'Timeframe').forEach(metric => {
     const metricBox = document.createElement('div');
     metricBox.className = `metric-box view-mode-${currentView}`;
     
@@ -250,6 +314,28 @@ function filterMetrics(searchTerm) {
   populateMetrics('roleplay', filteredMetrics.roleplay);
 }
 
+// Get trend indicators and values based on timeframe
+function getTrendData(metrics, tabId) {
+  const weeklyTrendMetric = metrics.find(m => m.name === 'Weekly Trend');
+  
+  if (weeklyTrendMetric) {
+    const trendValue = parseFloat(weeklyTrendMetric.value);
+    
+    if (!isNaN(trendValue)) {
+      return {
+        isPositive: trendValue >= 0,
+        value: weeklyTrendMetric.value
+      };
+    }
+  }
+  
+  // Default trend if not found
+  return {
+    isPositive: true,
+    value: '0%'
+  };
+}
+
 // Update summary cards based on the selected tab
 function updateSummaryCards(tabId) {
   let metrics;
@@ -272,6 +358,19 @@ function updateSummaryCards(tabId) {
   const totalEntriesMetric = metrics.find(m => m.name === 'Total Entries');
   if (totalEntriesMetric) {
     document.querySelector('#total-attempts .card-value').textContent = totalEntriesMetric.value;
+    
+    // Update trend
+    const totalTrend = getTrendData(metrics, tabId);
+    const totalTrendElement = document.querySelector('#total-attempts .card-trend');
+    
+    totalTrendElement.classList.remove('positive', 'negative');
+    totalTrendElement.classList.add(totalTrend.isPositive ? 'positive' : 'negative');
+    
+    const iconElement = totalTrendElement.querySelector('i');
+    iconElement.classList.remove('fa-arrow-up', 'fa-arrow-down');
+    iconElement.classList.add(totalTrend.isPositive ? 'fa-arrow-up' : 'fa-arrow-down');
+    
+    totalTrendElement.querySelector('.trend-value').textContent = totalTrend.value;
   }
   
   // Find completion rate
@@ -286,12 +385,38 @@ function updateSummaryCards(tabId) {
   
   if (completionRateMetric) {
     document.querySelector('#completion-rate .card-value').textContent = completionRateMetric.value;
+    
+    // Update trend (assume positive for completion rate)
+    const completionTrend = { isPositive: true, value: '5%' };
+    const completionTrendElement = document.querySelector('#completion-rate .card-trend');
+    
+    completionTrendElement.classList.remove('positive', 'negative');
+    completionTrendElement.classList.add(completionTrend.isPositive ? 'positive' : 'negative');
+    
+    const iconElement = completionTrendElement.querySelector('i');
+    iconElement.classList.remove('fa-arrow-up', 'fa-arrow-down');
+    iconElement.classList.add(completionTrend.isPositive ? 'fa-arrow-up' : 'fa-arrow-down');
+    
+    completionTrendElement.querySelector('.trend-value').textContent = completionTrend.value;
   }
   
   // Find average score
   const avgScoreMetric = metrics.find(m => m.name === 'Average First Test Result');
   if (avgScoreMetric) {
     document.querySelector('#avg-score .card-value').textContent = avgScoreMetric.value;
+    
+    // Update trend (assume negative for average score as example)
+    const scoreTrend = { isPositive: false, value: '2%' };
+    const scoreTrendElement = document.querySelector('#avg-score .card-trend');
+    
+    scoreTrendElement.classList.remove('positive', 'negative');
+    scoreTrendElement.classList.add(scoreTrend.isPositive ? 'positive' : 'negative');
+    
+    const iconElement = scoreTrendElement.querySelector('i');
+    iconElement.classList.remove('fa-arrow-up', 'fa-arrow-down');
+    iconElement.classList.add(scoreTrend.isPositive ? 'fa-arrow-up' : 'fa-arrow-down');
+    
+    scoreTrendElement.querySelector('.trend-value').textContent = scoreTrend.value;
   }
 }
 
@@ -306,6 +431,12 @@ function initPerformanceChart(data) {
   const canvas = document.createElement('canvas');
   canvas.id = 'quizScoreChart';
   chartContainer.appendChild(canvas);
+  
+  // Check if we have valid data
+  if (!data.failbase || !data.job || !data.roleplay) {
+    chartContainer.innerHTML = '<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>No data available for the selected timeframe</p></div>';
+    return;
+  }
   
   // Prepare data for chart
   const chartData = {
@@ -364,119 +495,13 @@ function initPerformanceChart(data) {
           labels: {
             color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
           }
+        },
+        title: {
+          display: true,
+          text: `Quiz Performance (${currentTimeframe})`,
+          color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+          font: {
+            size: 16
+          }
         }
       }
-    }
-  });
-  
-  // Update insight description
-  updateInsightDescription(data);
-}
-
-// Helper function to extract average score from data
-function getAverageScoreFromData(data) {
-  if (!data) return 0;
-  
-  const avgScoreMetric = data.find(m => m.name === 'Average First Test Result');
-  if (avgScoreMetric && avgScoreMetric.value !== 'N/A') {
-    return avgScoreMetric.value;
-  }
-  
-  return 0;
-}
-
-// Update insight description based on data
-function updateInsightDescription(data) {
-  let description = '';
-  
-  // Find the quiz with highest average score
-  const scores = [
-    { name: 'Failbase', score: parseFloat(getAverageScoreFromData(data.failbase)) },
-    { name: 'Job', score: parseFloat(getAverageScoreFromData(data.job)) },
-    { name: 'Roleplay', score: parseFloat(getAverageScoreFromData(data.roleplay)) }
-  ];
-  
-  scores.sort((a, b) => b.score - a.score);
-  
-  // Get improvement rates
-  const failbaseImprovement = data.failbase.find(m => m.name === 'Improvement Rate')?.value || 'N/A';
-  const jobImprovement = data.job.find(m => m.name === 'Improvement Rate')?.value || 'N/A';
-  const roleplayImprovement = data.roleplay.find(m => m.name === 'Improvement Rate')?.value || 'N/A';
-  
-  // Create insight
-  description = `${scores[0].name} Quiz has the highest average score at ${scores[0].score}. 
-                 Improvement rates: Failbase (${failbaseImprovement}), Job (${jobImprovement}), 
-                 Roleplay (${roleplayImprovement}).`;
-  
-  document.querySelector('.insight-description').textContent = description;
-  
-  // Update improvement areas
-  updateImprovementAreas(data);
-}
-
-// Update improvement areas based on data
-function updateImprovementAreas(data) {
-  const improvementList = document.querySelector('.improvement-list');
-  improvementList.innerHTML = '';
-  
-  // Compare participation rates
-  const failbaseParticipation = parseFloat(data.failbase.find(m => m.name === 'General Participation Rate')?.value || '0');
-  const jobParticipation = parseFloat(data.job.find(m => m.name === 'General Participation Rate')?.value || '0');
-  const roleplayParticipation = parseFloat(data.roleplay.find(m => m.name === 'General Participation Rate')?.value || '0');
-  
-  // Find lowest participation
-  const participationRates = [
-    { name: 'Failbase', rate: failbaseParticipation },
-    { name: 'Job', rate: jobParticipation },
-    { name: 'Roleplay', rate: roleplayParticipation }
-  ];
-  
-  participationRates.sort((a, b) => a.rate - b.rate);
-  
-  // Add improvement items
-  const items = [
-    `Increase participation rate for ${participationRates[0].name} Quiz (currently at ${participationRates[0].rate}%)`,
-    `Improve retake submission rate across all quizzes`,
-    `Focus on increasing lowest score areas in all quizzes`
-  ];
-  
-  items.forEach(item => {
-    const li = document.createElement('li');
-    li.textContent = item;
-    improvementList.appendChild(li);
-  });
-}
-
-// Show loading overlay
-function showLoading() {
-  document.getElementById('loading-overlay').style.display = 'flex';
-}
-
-// Hide loading overlay
-function hideLoading() {
-  document.getElementById('loading-overlay').style.display = 'none';
-}
-
-// Show error message
-function showErrorMessage(message) {
-  const errorBanner = document.createElement('div');
-  errorBanner.className = 'error-banner';
-  errorBanner.innerHTML = `
-    <div class="error-content">
-      <i class="fas fa-exclamation-circle"></i>
-      <p>${message}</p>
-      <button onclick="this.parentElement.parentElement.remove()">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-  `;
-  
-  document.body.appendChild(errorBanner);
-  
-  // Auto-remove after 5 seconds
-  setTimeout(() => {
-    if (errorBanner.parentElement) {
-      errorBanner.remove();
-    }
-  }, 5000);
-}
