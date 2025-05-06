@@ -685,58 +685,45 @@ function displayMetrics(metrics, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  if (!Array.isArray(metrics) || metrics.length === 0) {
+  // Handle empty or invalid data
+  if (!metrics || (Array.isArray(metrics) && metrics.length === 0)) {
     container.innerHTML = '<div class="no-data">No metrics available</div>';
     return;
   }
 
-  // Create category filters
-  const categories = metrics.map(category => category.category);
-  const filterHtml = `
-    <div class="category-filters">
-      <button class="category-filter active" data-category="all">All</button>
-      ${categories.map(cat => `
-        <button class="category-filter" data-category="${cat}">${cat}</button>
-      `).join('')}
-    </div>
-  `;
-
-  // Create metrics sections
-  const metricsHtml = metrics.map(category => `
-    <div class="metrics-category" data-category="${category.category}">
-      <h3 class="category-title">${category.category}</h3>
-      <div class="metric-grid view-mode-grid">
-        ${category.metrics.map(metric => `
-          <div class="metric-box" data-category="${category.category}">
-            <h4 class="metric-name">${metric.name}</h4>
-            <p class="metric-value">${metric.value}</p>
-          </div>
-        `).join('')}
+  // Check if we have the new categorized format
+  const isCategorized = !Array.isArray(metrics) && metrics.some(m => m.category && m.metrics);
+  
+  if (isCategorized) {
+    // Create metrics sections for categorized data
+    const metricsHtml = metrics.filter(category => category.category !== 'Timeframe').map(category => `
+      <div class="metrics-category" data-category="${category.category}">
+        <h3 class="category-title">${category.category}</h3>
+        <div class="metric-grid view-mode-grid">
+          ${category.metrics.map(metric => `
+            <div class="metric-box" data-category="${category.category}">
+              <h4 class="metric-name">${metric.name}</h4>
+              <p class="metric-value">${metric.value}</p>
+            </div>
+          `).join('')}
+        </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
 
-  container.innerHTML = filterHtml + metricsHtml;
+    container.innerHTML = metricsHtml;
+  } else {
+    // Handle legacy array format
+    const metricsHtml = metrics
+      .filter(metric => metric.name !== 'Timeframe')
+      .map(metric => `
+        <div class="metric-box">
+          <h4 class="metric-name">${metric.name}</h4>
+          <p class="metric-value">${metric.value}</p>
+        </div>
+      `).join('');
 
-  // Add filter functionality
-  container.querySelectorAll('.category-filter').forEach(button => {
-    button.addEventListener('click', () => {
-      // Update active filter
-      container.querySelectorAll('.category-filter').forEach(btn => 
-        btn.classList.remove('active'));
-      button.classList.add('active');
-
-      // Show/hide categories
-      const selectedCategory = button.dataset.category;
-      container.querySelectorAll('.metrics-category').forEach(category => {
-        if (selectedCategory === 'all' || category.dataset.category === selectedCategory) {
-          category.style.display = 'block';
-        } else {
-          category.style.display = 'none';
-        }
-      });
-    });
-  });
+    container.innerHTML = `<div class="metric-grid view-mode-grid">${metricsHtml}</div>`;
+  }
 }
 
 // Add missing showError function
