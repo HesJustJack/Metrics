@@ -2,18 +2,21 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quiz Analytics Hub | JustJack</title>
+  <!-- Combine meta tags -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Comprehensive analytics dashboard for quiz performance metrics">
   <meta name="theme-color" content="#03a9f4">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <!-- Prevent iOS telephone number linking -->
   <meta name="format-detection" content="telephone=no">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
-  <link rel="stylesheet" href="style.css" />
-  <!-- Chart.js for data visualization -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+
+  <!-- Optimize resource loading -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" defer></script>
+  <script src="script.js" defer></script>
+
+  <title>Quiz Analytics Hub | JustJack</title>
 </head>
 
 <body>
@@ -51,8 +54,9 @@
               <option value="year" selected>This Year</option>
               <option value="all">All Time</option>
             </select>
-            <button class="refresh-btn" onclick="fetchMetrics()">
+            <button class="refresh-btn" data-action="refresh">
               <i class="fas fa-sync-alt"></i> Refresh
+              <span class="countdown"></span>
             </button>
           </div>
         </div>
@@ -109,8 +113,12 @@
               <i class="fas fa-search"></i>
             </div>
             <div class="view-toggle">
-              <button class="view-btn active" data-view="grid"><i class="fas fa-th"></i></button>
-              <button class="view-btn" data-view="list"><i class="fas fa-list"></i></button>
+              <button class="view-btn active" data-action="toggleView" data-view="grid">
+                <i class="fas fa-th"></i>
+              </button>
+              <button class="view-btn" data-action="toggleView" data-view="list">
+                <i class="fas fa-list"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -146,31 +154,112 @@
           </div>
         </div>
       </section>
-
-      <!-- Additional Section for Insights -->
-      <section class="insights-section">
-        <h2>Key Insights</h2>
-        <div class="insights-grid">
-          <div class="insight-card">
-            <h3><i class="fas fa-lightbulb"></i> Performance Trends</h3>
-            <div class="chart-container" id="performance-chart">
-              <div class="chart-placeholder">
-                <i class="fas fa-chart-line"></i>
-                <p>Loading chart data...</p>
-              </div>
-            </div>
-            <p class="insight-description">Loading insights...</p>
-          </div>
-          <div class="insight-card">
-            <h3><i class="fas fa-rocket"></i> Improvement Areas</h3>
-            <ul class="improvement-list">
-              <li>Loading improvement areas...</li>
-            </ul>
-          </div>
-        </div>
-      </section>
     </div>
   </main>
+
+  <!-- History Page -->
+  <section id="history-page" class="main-content-section">
+    <div class="container">
+      <div class="section-header">
+        <h2><i class="fas fa-history"></i> Quiz History</h2>
+        <p class="section-description">View and analyze historical quiz performance data.</p>
+      </div>
+
+      <div class="history-controls">
+        <div class="filter-group">
+          <div class="date-range-picker">
+            <label for="start-date">From:</label>
+            <input type="date" id="start-date">
+            <label for="end-date">To:</label>
+            <input type="date" id="end-date">
+          </div>
+          <div class="quiz-type-filter">
+            <label for="quiz-type">Quiz Type:</label>
+            <select id="quiz-type">
+              <option value="all">All Quizzes</option>
+              <option value="failbase">Failbase</option>
+              <option value="job">Job</option>
+              <option value="roleplay">Roleplay</option>
+            </select>
+          </div>
+        </div>
+        <div class="action-group">
+          <button class="apply-filters-btn primary-btn">
+            <i class="fas fa-filter"></i> Apply Filters
+          </button>
+          <button class="export-btn secondary-btn">
+            <i class="fas fa-file-export"></i> Export Data
+          </button>
+        </div>
+      </div>
+
+      <div class="history-table-container">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Date <i class="fas fa-sort"></i></th>
+              <th>Quiz Type <i class="fas fa-sort"></i></th>
+              <th>Attempts <i class="fas fa-sort"></i></th>
+              <th>Pass Rate <i class="fas fa-sort"></i></th>
+              <th>Avg. Score <i class="fas fa-sort"></i></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="history-data">
+            <!-- Data will be populated via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <button class="pagination-btn" data-page="prev">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="page-numbers">
+          <!-- Page numbers will be populated via JavaScript -->
+        </div>
+        <button class="pagination-btn" data-page="next">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- History Detail Modal -->
+  <div id="history-detail-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Quiz Performance Details</h2>
+        <button class="close-modal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-summary">
+          <div class="detail-item">
+            <span class="label">Date:</span>
+            <span class="value" id="detail-date"></span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Quiz Type:</span>
+            <span class="value" id="detail-quiz-type"></span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Total Attempts:</span>
+            <span class="value" id="detail-attempts"></span>
+          </div>
+        </div>
+        <div class="detail-charts">
+          <div class="chart-wrapper">
+            <h3>Score Distribution</h3>
+            <canvas id="score-distribution-chart"></canvas>
+          </div>
+          <div class="chart-wrapper">
+            <h3>Time Trend</h3>
+            <canvas id="time-trend-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Footer -->
   <footer class="main-footer" role="contentinfo">
@@ -216,9 +305,6 @@
   <div class="brand-watermark">
     <img src="https://mutinynetwork.com/img/name.webp" alt="JustJack Logo">
   </div>
-
-  <!-- Scripts -->
-  <script src="script.js"></script>
 </body>
 
 </html>

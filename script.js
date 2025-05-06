@@ -1,3 +1,41 @@
+// Cache DOM elements used frequently
+const DOM = {
+  countdownSpan: document.querySelector('.refresh-btn .countdown'),
+  loadingOverlay: document.getElementById('loading-overlay'),
+  metricSearch: document.getElementById('metric-search'),
+  timeRange: document.getElementById('timeRange')
+};
+
+// Combine trend calculation into a single function
+function getTrendData(metrics, metric) {
+  const trendMetric = metrics.find(m => m.name === metric);
+  const trendValue = trendMetric ? parseFloat(trendMetric.value) : 0;
+  return {
+    isPositive: trendValue >= 0,
+    value: trendMetric ? trendMetric.value : '0%'
+  };
+}
+
+// Optimize metric updates with a single function
+function updateMetric(elementId, value, trend) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  
+  element.querySelector('.card-value').textContent = value;
+  const trendElement = element.querySelector('.card-trend');
+  const iconElement = trendElement.querySelector('i');
+  
+  trendElement.classList.toggle('positive', trend.isPositive);
+  trendElement.classList.toggle('negative', !trend.isPositive);
+  iconElement.className = `fas fa-arrow-${trend.isPositive ? 'up' : 'down'}`;
+  trendElement.querySelector('.trend-value').textContent = trend.value;
+}
+
+// Combine loading states
+function toggleLoading(show) {
+  DOM.loadingOverlay?.classList.toggle('show', show);
+}
+
 // Get trend indicators and values based on timeframe
 function getTrendData(metrics, tabId) {
   const weeklyTrendMetric = metrics.find(m => m.name === 'Weekly Trend');
@@ -381,18 +419,12 @@ function updateImprovementAreas(data) {
 
 // Show loading overlay
 function showLoading() {
-  const loadingOverlay = document.getElementById('loading-overlay');
-  if (loadingOverlay) {
-    loadingOverlay.classList.add('show');
-  }
+  toggleLoading(true);
 }
 
 // Hide loading overlay
 function hideLoading() {
-  const loadingOverlay = document.getElementById('loading-overlay');
-  if (loadingOverlay) {
-    loadingOverlay.classList.remove('show');
-  }
+  toggleLoading(false);
 }
 
 // Show error message
@@ -595,7 +627,7 @@ function initViewToggle() {
 
 // Initialize search functionality
 function initSearch() {
-  const searchInput = document.getElementById('metric-search');
+  const searchInput = DOM.metricSearch;
 
   searchInput.addEventListener('input', function () {
     const searchTerm = this.value.toLowerCase();
@@ -605,7 +637,7 @@ function initSearch() {
 
 // Initialize timeframe selector
 function initTimeframeSelector() {
-  const timeframeSelect = document.getElementById('timeRange');
+  const timeframeSelect = DOM.timeRange;
 
   // Set initial value
   timeframeSelect.value = currentTimeframe;
@@ -1012,7 +1044,7 @@ function applySettings(settings) {
       startRefreshTimer();
     } else {
       // Update display to show "paused"
-      const countdownSpan = document.querySelector('.refresh-btn .countdown');
+      const countdownSpan = DOM.countdownSpan;
       if (countdownSpan) {
         countdownSpan.textContent = ' (paused)';
       }
@@ -1146,7 +1178,7 @@ function initRefreshButton() {
   if (!refreshBtn) return;
 
   // Create countdown span if it doesn't exist
-  let countdownSpan = refreshBtn.querySelector('.countdown');
+  let countdownSpan = DOM.countdownSpan;
   if (!countdownSpan) {
     countdownSpan = document.createElement('span');
     countdownSpan.className = 'countdown';
@@ -1173,7 +1205,7 @@ function startRefreshTimer() {
 
   // Only start timer if auto-refresh is enabled
   if (!enableAutoRefresh) {
-    const countdownSpan = document.querySelector('.refresh-btn .countdown');
+    const countdownSpan = DOM.countdownSpan;
     if (countdownSpan) {
       countdownSpan.textContent = ' (paused)';
     }
@@ -1204,7 +1236,7 @@ function resetRefreshTimer() {
 
 // Update countdown display
 function updateCountdownDisplay() {
-  const countdownSpan = document.querySelector('.refresh-btn .countdown');
+  const countdownSpan = DOM.countdownSpan;
   if (countdownSpan) {
     if (!enableAutoRefresh) {
       countdownSpan.textContent = ' (paused)';
@@ -1316,3 +1348,163 @@ function updateMetricGridView() {
     populateMetrics('roleplay', filteredMetrics.roleplay);
   }
 }
+
+// History page functionality
+function initializeHistory() {
+  // Set default dates (last 30 days)
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
+  document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
+
+  // Initialize event listeners
+  document.querySelector('.apply-filters-btn').addEventListener('click', fetchHistoryData);
+  document.querySelector('.export-btn').addEventListener('click', exportHistoryData);
+  
+  // Initialize sorting
+  initializeTableSorting();
+  
+  // Initial data fetch
+  fetchHistoryData();
+}
+
+function fetchHistoryData() {
+  showLoading();
+  
+  const startDate = document.getElementById('start-date').value;
+  const endDate = document.getElementById('end-date').value;
+  const quizType = document.getElementById('quiz-type').value;
+  
+  // Construct URL with parameters
+  const url = `${API_URL}?action=history&start=${startDate}&end=${endDate}&type=${quizType}`;
+  
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      populateHistoryTable(data);
+      hideLoading();
+    })
+    .catch(error => {
+      console.error('Error fetching history:', error);
+      hideLoading();
+      showErrorMessage('Failed to load history data. Please try again.');
+    });
+}
+
+function populateHistoryTable(data) {
+  const tbody = document.getElementById('history-data');
+  tbody.innerHTML = '';
+  
+  data.forEach(record => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${formatDate(record.date)}</td>
+      <td>${record.quizType}</td>
+      <td>${record.attempts}</td>
+      <td>${record.passRate}%</td>
+      <td>${record.avgScore}</td>
+      <td>
+        <div class="actions">
+          <button class="action-btn" onclick="showHistoryDetail('${record.id}')" title="View Details">
+            <i class="fas fa-chart-bar"></i>
+          </button>
+          <button class="action-btn" onclick="downloadReport('${record.id}')" title="Download Report">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  updatePagination(data.length);
+}
+
+function showHistoryDetail(recordId) {
+  const modal = document.getElementById('history-detail-modal');
+  modal.style.display = 'flex';
+  
+  // Fetch and display detailed data
+  fetch(`${API_URL}?action=detail&id=${recordId}`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('detail-date').textContent = formatDate(data.date);
+      document.getElementById('detail-quiz-type').textContent = data.quizType;
+      document.getElementById('detail-attempts').textContent = data.attempts;
+      
+      // Initialize charts
+      initializeDetailCharts(data);
+    })
+    .catch(error => {
+      console.error('Error fetching detail:', error);
+      showErrorMessage('Failed to load detail data.');
+    });
+}
+
+function initializeDetailCharts(data) {
+  // Score Distribution Chart
+  new Chart(document.getElementById('score-distribution-chart'), {
+    type: 'bar',
+    data: {
+      labels: data.scoreRanges,
+      datasets: [{
+        label: 'Number of Attempts',
+        data: data.scoreDistribution,
+        backgroundColor: 'rgba(3, 169, 244, 0.6)',
+        borderColor: 'rgba(3, 169, 244, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+  
+  // Time Trend Chart
+  new Chart(document.getElementById('time-trend-chart'), {
+    type: 'line',
+    data: {
+      labels: data.timeLabels,
+      datasets: [{
+        label: 'Average Score',
+        data: data.timeScores,
+        borderColor: 'rgba(3, 169, 244, 1)',
+        tension: 0.4,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function exportHistoryData() {
+  const startDate = document.getElementById('start-date').value;
+  const endDate = document.getElementById('end-date').value;
+  const quizType = document.getElementById('quiz-type').value;
+  
+  window.location.href = `${API_URL}?action=export&start=${startDate}&end=${endDate}&type=${quizType}`;
+}
+
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+// Add history initialization to the DOMContentLoaded event
+document.addEventListener('DOMContentLoaded', function() {
+  // ...existing initialization code...
+  
+  // Initialize history page if it exists
+  if (document.getElementById('history-page')) {
+    initializeHistory();
+  }
+});
