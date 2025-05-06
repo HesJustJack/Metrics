@@ -548,6 +548,32 @@ ul {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Update metric grid layout */
+.metrics-category .metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.metrics-category .metric-grid.view-mode-list {
+  grid-template-columns: 1fr;
+}
+
+/* Ensure metric boxes have consistent height */
+.metric-box {
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Adjust list view layout */
+.view-mode-list .metric-box {
+  min-height: auto;
+  flex-direction: row;
+  align-items: center;
+}
+
 .metrics-category .metric-grid {
   gap: 15px;
 }
