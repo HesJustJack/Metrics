@@ -465,29 +465,93 @@ function analyzePatterns() {
 }
 
 function updateProgressTracking() {
-  const ctx = document.getElementById('progressChart').getContext('2d');
-  const progressData = calculateProgress();
+  const ctx = document.getElementById('progressChart')?.getContext('2d');
+  if (!ctx) return;
   
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: Object.keys(progressData),
-      datasets: [{
-        label: 'Completion Rate',
-        data: Object.values(progressData).map(d => d.completion),
-        backgroundColor: 'rgba(76, 175, 80, 0.6)'
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100
+  const progressData = calculateProgress();
+  if (!progressData || Object.keys(progressData).length === 0) {
+    const container = document.querySelector('.progress-chart-container');
+    if (container) {
+      container.innerHTML = '<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>No progress data available</p></div>';
+    }
+    return;
+  }
+  
+  try {
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(progressData),
+        datasets: [{
+          label: 'Completion Rate',
+          data: Object.values(progressData).map(d => d.completion),
+          backgroundColor: 'rgba(76, 175, 80, 0.6)'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100
+          }
         }
       }
+    });
+
+    // Update achievements list
+    updateAchievements(progressData);
+  } catch (error) {
+    console.error('Error creating progress chart:', error);
+    showError('Failed to create progress chart');
+  }
+}
+
+function updateAchievements(progressData) {
+  const achievementsList = document.getElementById('achievementsList');
+  if (!achievementsList) return;
+
+  const achievements = [];
+  
+  // Calculate overall completion
+  const totalCompletion = Object.values(progressData).reduce((sum, data) => sum + data.completion, 0) / Object.keys(progressData).length;
+
+  // Generate achievements based on progress
+  if (totalCompletion >= 90) {
+    achievements.push({
+      icon: 'fa-trophy',
+      title: 'Excellence Achievement',
+      description: 'Outstanding completion rate across all quizzes!'
+    });
+  } else if (totalCompletion >= 75) {
+    achievements.push({
+      icon: 'fa-medal',
+      title: 'High Performer',
+      description: 'Great progress across all quiz types'
+    });
+  }
+
+  // Add individual quiz achievements
+  Object.entries(progressData).forEach(([quizType, data]) => {
+    if (data.completion >= 80) {
+      achievements.push({
+        icon: 'fa-star',
+        title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Master`,
+        description: `Exceptional completion rate in ${quizType} quiz`
+      });
     }
   });
+
+  // Render achievements
+  achievementsList.innerHTML = achievements.length ? achievements.map(achievement => `
+    <div class="achievement-item">
+      <i class="fas ${achievement.icon}"></i>
+      <div class="achievement-details">
+        <h4>${achievement.title}</h4>
+        <p>${achievement.description}</p>
+      </div>
+    </div>
+  `).join('') : '<p class="no-data">Complete more quizzes to earn achievements!</p>';
 }
 
 function calculateProgress() {
