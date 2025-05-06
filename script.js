@@ -685,34 +685,13 @@ function displayMetrics(metrics, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  // Handle empty or invalid data
   if (!metrics || (Array.isArray(metrics) && metrics.length === 0)) {
     container.innerHTML = '<div class="no-data">No metrics available</div>';
     return;
   }
 
-  // Check if we have the new categorized format
-  const isCategorized = !Array.isArray(metrics) && metrics.some(m => m.category && m.metrics);
-  
-  if (isCategorized) {
-    // Create metrics sections for categorized data
-    const metricsHtml = metrics.filter(category => category.category !== 'Timeframe').map(category => `
-      <div class="metrics-category" data-category="${category.category}">
-        <h3 class="category-title">${category.category}</h3>
-        <div class="metric-grid view-mode-grid">
-          ${category.metrics.map(metric => `
-            <div class="metric-box" data-category="${category.category}">
-              <h4 class="metric-name">${metric.name}</h4>
-              <p class="metric-value">${metric.value}</p>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
-
-    container.innerHTML = metricsHtml;
-  } else {
-    // Handle legacy array format
+  if (Array.isArray(metrics)) {
+    // Handle legacy array format with single grid
     const metricsHtml = metrics
       .filter(metric => metric.name !== 'Timeframe')
       .map(metric => `
@@ -723,6 +702,23 @@ function displayMetrics(metrics, containerId) {
       `).join('');
 
     container.innerHTML = `<div class="metric-grid view-mode-grid">${metricsHtml}</div>`;
+  } else {
+    // Handle categorized format
+    container.innerHTML = metrics
+      .filter(category => category.category !== 'Timeframe')
+      .map(category => `
+        <div class="metrics-category" data-category="${category.category}">
+          <h3 class="category-title">${category.category}</h3>
+          <div class="metric-grid view-mode-grid">
+            ${category.metrics.map(metric => `
+              <div class="metric-box">
+                <h4 class="metric-name">${metric.name}</h4>
+                <p class="metric-value">${metric.value}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
   }
 }
 
