@@ -783,10 +783,27 @@ function initSettingsForm() {
 
 // Function to show success message
 function showSuccessMessage() {
-  const successMessage = document.getElementById('settings-success-message');
-  if (!successMessage) return;
+  // Try to find the existing success message element
+  let successMessage = document.getElementById('settings-success-message');
   
-  // Show success message
+  // If it doesn't exist, create it
+  if (!successMessage) {
+    successMessage = document.createElement('div');
+    successMessage.id = 'settings-success-message';
+    successMessage.className = 'success-message inline-success';
+    successMessage.innerHTML = `
+      <i class="fas fa-check-circle"></i>
+      <span>Settings saved successfully!</span>
+    `;
+    
+    // Add the element after the save button
+    const settingsActions = document.querySelector('.settings-actions');
+    if (settingsActions) {
+      settingsActions.appendChild(successMessage);
+    }
+  }
+  
+  // Show the success message
   successMessage.style.display = 'flex';
   successMessage.classList.add('show');
   
