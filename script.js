@@ -1,6 +1,6 @@
 // Global variables
 let currentView = 'grid';
-let currentTimeframe = 'week'; // Default timeframe
+let currentTimeframe = 'year'; // Default timeframe
 let allMetrics = {};
 let filteredMetrics = {};
 
