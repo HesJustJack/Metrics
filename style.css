@@ -829,6 +829,33 @@ canvas {
   font-size: 0.85em;
 }
 
+/* Settings Actions Container */
+.settings-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  align-items: center;
+  min-height: 42px; /* Match the height of the buttons */
+}
+
+.settings-actions button {
+  min-width: 140px; /* Set minimum width for buttons */
+  height: 42px; /* Fixed height for buttons */
+}
+
+.settings-actions .success-message {
+  margin-left: 15px;
+  position: absolute;
+  transform: translateX(300px); /* Start from right of buttons */
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.settings-actions .success-message.show {
+  transform: translateX(300px); /* Keep the same position */
+  opacity: 1;
+}
+
 .settings-actions {
   display: flex;
   gap: 15px;

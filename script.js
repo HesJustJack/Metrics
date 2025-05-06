@@ -852,29 +852,31 @@ function showSuccessMessage() {
   if (!successMessage) {
     successMessage = document.createElement('div');
     successMessage.id = 'settings-success-message';
-    successMessage.className = 'success-message inline-success';
+    successMessage.className = 'success-message';
     successMessage.innerHTML = `
       <i class="fas fa-check-circle"></i>
       <span>Settings saved successfully!</span>
     `;
 
-    // Add the element after the save button
+    // Add the element to the settings actions container
     const settingsActions = document.querySelector('.settings-actions');
     if (settingsActions) {
       settingsActions.appendChild(successMessage);
     }
   }
 
+  // Remove existing animation classes
+  successMessage.classList.remove('show');
+  
+  // Force a reflow to restart the animation
+  void successMessage.offsetWidth;
+  
   // Show the success message
-  successMessage.style.display = 'flex';
   successMessage.classList.add('show');
 
   // Auto hide after 3 seconds
   setTimeout(function () {
     successMessage.classList.remove('show');
-    setTimeout(function () {
-      successMessage.style.display = 'none';
-    }, 300);
   }, 3000);
 }
 
