@@ -4,6 +4,12 @@ const DOM = {
   loadingOverlay: document.getElementById("loading-overlay"),
   metricSearch: document.getElementById("metric-search"),
   timeRange: document.getElementById("timeRange"),
+  performanceChart: document.getElementById("performance-chart"),
+  trendChart: document.getElementById("trendChart"),
+  progressChart: document.getElementById("progressChart"),
+  patternsList: document.getElementById("patternsList"),
+  predictiveInsights: document.getElementById("predictiveInsights"),
+  achievementsList: document.getElementById("achievementsList")
 };
 
 // Global state variables
@@ -13,6 +19,23 @@ let activeTab = 'failbase'; // Add activeTab state
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+  // Check if required elements exist
+  const requiredElements = [
+    'loadingOverlay',
+    'performanceChart',
+    'trendChart',
+    'progressChart',
+    'patternsList',
+    'predictiveInsights',
+    'achievementsList'
+  ];
+
+  const missingElements = requiredElements.filter(id => !document.getElementById(id));
+  if (missingElements.length > 0) {
+    console.error('Missing required elements:', missingElements);
+    showError('Some dashboard elements are missing. Please check the console for details.');
+  }
+
   // Initialize global elements
   DOM.metricSearch?.addEventListener('input', handleSearch);
   DOM.timeRange?.addEventListener('change', handleTimeframeChange);
@@ -283,8 +306,9 @@ function initPerformanceChart(data) {
     canvas.id = "quizScoreChart";
     chartContainer.appendChild(canvas);
 
-    // Check if we have valid data
-    if (!data.failbase || !data.job || !data.roleplay) {
+    // Check if we have valid data with proper structure
+    if (!data.failbase || !data.job || !data.roleplay || 
+        !Array.isArray(data.failbase) || !Array.isArray(data.job) || !Array.isArray(data.roleplay)) {
       chartContainer.innerHTML =
         '<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>No data available for the selected timeframe</p></div>';
       return;
@@ -343,9 +367,7 @@ function initPerformanceChart(data) {
     }
   } catch (error) {
     console.error("Error creating performance chart:", error);
-    if (chartContainer) {
-      chartContainer.innerHTML = '<div class="chart-placeholder"><i class="fas fa-exclamation-circle"></i><p>Error creating chart</p></div>';
-    }
+    showError('Failed to initialize performance chart');
   }
 }
 
@@ -377,10 +399,21 @@ function getAverageScoreFromData(data) {
 
 // Replace analytics section with simplified metrics
 function updateAnalytics() {
-  updateTrendChart();
-  updatePatternAnalysis();
-  updateProgressTracking();
-  updatePredictiveInsights();
+  try {
+    const analyticsSection = document.getElementById('analytics-section');
+    if (!analyticsSection) {
+      console.error('Analytics section not found');
+      return;
+    }
+
+    updateTrendChart();
+    updatePatternAnalysis();
+    updateProgressTracking();
+    updatePredictiveInsights();
+  } catch (error) {
+    console.error('Error updating analytics:', error);
+    showError('Failed to update analytics');
+  }
 }
 
 function updateTrendChart() {
@@ -665,6 +698,26 @@ function displayMetrics(metrics, containerId) {
       </div>
     `;
   }).join('');
+}
+
+// Add missing showError function
+function showError(message) {
+  console.error(message);
+  const container = document.getElementById('error-container');
+  if (!container) return;
+
+  const template = document.getElementById('error-banner-template');
+  if (!template) return;
+
+  const clone = template.content.cloneNode(true);
+  const errorMessage = clone.querySelector('p');
+  if (errorMessage) errorMessage.textContent = message;
+
+  const banner = clone.querySelector('.error-banner');
+  container.appendChild(banner);
+
+  // Auto remove after 5 seconds
+  setTimeout(() => banner.remove(), 5000);
 }
 
 // Additional functions and logic remain unchanged
