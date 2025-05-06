@@ -1420,17 +1420,17 @@ function loadHistoryData() {
       return response.json();
     })
     .then(data => {
+      // Validate data structure
       if (!data) {
         throw new Error('No data received');
       }
 
-      if (Array.isArray(data) && data.length === 0) {
-        // Show "no data" message in the table instead of error
-        displayHistoryData([]);
-      } else {
-        displayHistoryData(data);
-      }
-      
+      // If data is an object with records property, use that
+      const records = Array.isArray(data) ? data : 
+                     Array.isArray(data.records) ? data.records : 
+                     [];
+
+      displayHistoryData(records);
       hideLoading();
     })
     .catch(error => {
@@ -1453,11 +1453,14 @@ function loadHistoryData() {
     });
 }
 
-function displayHistoryData(data) {
+function displayHistoryData(records) {
   const tbody = document.getElementById('history-table-body');
+  if (!tbody) return;
+
   tbody.innerHTML = '';
 
-  if (!data || data.length === 0) {
+  // Ensure records is an array and has data
+  if (!Array.isArray(records) || records.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="5" class="no-data">No history data available</td>
@@ -1466,19 +1469,25 @@ function displayHistoryData(data) {
     return;
   }
 
-  data.forEach(record => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${formatDate(record.date)}</td>
-      <td>${record.quizType}</td>
-      <td>${record.attempts}</td>
-      <td>${record.passRate}%</td>
-      <td>${record.avgScore}</td>
-    `;
-    tbody.appendChild(tr);
+  // Process each record
+  records.forEach(record => {
+    try {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${formatDate(record.date || new Date())}</td>
+        <td>${record.quizType || 'Unknown'}</td>
+        <td>${record.attempts || '0'}</td>
+        <td>${record.passRate ? record.passRate + '%' : '0%'}</td>
+        <td>${record.avgScore || '0'}</td>
+      `;
+      tbody.appendChild(tr);
+    } catch (error) {
+      console.error('Error processing record:', error, record);
+    }
   });
 
-  updateHistoryPagination(data.length);
+  // Update pagination if we have valid data
+  updateHistoryPagination(records.length);
 }
 
 function exportHistoryData() {
@@ -1490,11 +1499,20 @@ function exportHistoryData() {
 }
 
 function formatDate(dateString) {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid Date';
+  }
 }
 
 function updateHistoryPagination(totalRecords) {
