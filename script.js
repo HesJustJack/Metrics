@@ -4,7 +4,7 @@ let allMetrics = {};
 let filteredMetrics = {};
 
 // API endpoint for the Google Apps Script
-const API_URL = 'https://script.google.com/macros/s/AKfycbzKwoQTrSqTjS9DiGnJ7GQZUCcVbDI0-kZb36vxHKjfB1yirvQJqb2P4mRKs98EX9GZ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsuw0tDs_ZZmtVInU9x_uUhb4RRgs7MtZ0W77VgWiW-fi9w/exec';
 
 // DOM ready function
 document.addEventListener('DOMContentLoaded', function() {
