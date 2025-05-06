@@ -7,6 +7,8 @@
   <meta name="description" content="Comprehensive analytics dashboard for quiz performance metrics">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js for data visualization -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
 </head>
 <body>
   <!-- Header with Navigation -->
@@ -55,7 +57,7 @@
             <div class="card-content">
               <h3>Total Attempts</h3>
               <p class="card-value">--</p>
-              <p class="card-trend positive"><i class="fas fa-arrow-up"></i> 12% from last period</p>
+              <p class="card-trend positive"><i class="fas fa-arrow-up"></i> <span class="trend-value">--</span> from last period</p>
             </div>
           </div>
           <div class="summary-card" id="completion-rate">
@@ -63,7 +65,7 @@
             <div class="card-content">
               <h3>Completion Rate</h3>
               <p class="card-value">--</p>
-              <p class="card-trend positive"><i class="fas fa-arrow-up"></i> 5% from last period</p>
+              <p class="card-trend positive"><i class="fas fa-arrow-up"></i> <span class="trend-value">--</span> from last period</p>
             </div>
           </div>
           <div class="summary-card" id="avg-score">
@@ -71,7 +73,7 @@
             <div class="card-content">
               <h3>Average Score</h3>
               <p class="card-value">--</p>
-              <p class="card-trend negative"><i class="fas fa-arrow-down"></i> 2% from last period</p>
+              <p class="card-trend negative"><i class="fas fa-arrow-down"></i> <span class="trend-value">--</span> from last period</p>
             </div>
           </div>
         </div>
@@ -144,17 +146,15 @@
             <div class="chart-container" id="performance-chart">
               <div class="chart-placeholder">
                 <i class="fas fa-chart-line"></i>
-                <p>Chart visualization will appear here</p>
+                <p>Loading chart data...</p>
               </div>
             </div>
-            <p class="insight-description">Quiz completion rates have improved by 15% over the last month, indicating better user engagement.</p>
+            <p class="insight-description">Loading insights...</p>
           </div>
           <div class="insight-card">
             <h3><i class="fas fa-rocket"></i> Improvement Areas</h3>
             <ul class="improvement-list">
-              <li>Increase average score on Job Quiz section 3</li>
-              <li>Reduce dropout rate on Failbase Quiz final questions</li>
-              <li>Improve first-attempt success rate across all quizzes</li>
+              <li>Loading improvement areas...</li>
             </ul>
           </div>
         </div>
@@ -188,6 +188,19 @@
     <div class="spinner"></div>
     <p>Loading your analytics data...</p>
   </div>
+
+  <!-- Error Banner Template -->
+  <template id="error-banner-template">
+    <div class="error-banner">
+      <div class="error-content">
+        <i class="fas fa-exclamation-circle"></i>
+        <p></p>
+        <button>
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+  </template>
 
   <!-- Branding -->
   <div class="brand-watermark">
