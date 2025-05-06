@@ -12,9 +12,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbyRTgsufzTG5NZUA2BPKQsu
 
 // DOM ready function
 document.addEventListener('DOMContentLoaded', function() {
-  // Add History and Settings pages to the document
-  addHistoryAndSettingsPages();
-  
   // Initialize tabs
   initTabs();
   
@@ -36,19 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize refresh button with countdown
   initRefreshButton();
   
-  // Initialize navigation links
-  initNavigation();
-  
-  // Initialize settings page
-  initSettings();
-  
-  // Set up refresh interval (every 60 seconds by default)
+  // Start the refresh countdown timer
   startRefreshTimer();
-  
-  // Add event listener for reset settings button
-  document.getElementById('reset-settings')?.addEventListener('click', function() {
-    resetSettingsToDefaults();
-  });
 });
 
 // Initialize tab functionality
@@ -176,18 +162,18 @@ function initThemeToggle() {
 // Initialize refresh button with countdown
 function initRefreshButton() {
   const refreshBtn = document.querySelector('.refresh-btn');
+  if (!refreshBtn) return;
   
-  // Create countdown span
-  const countdownSpan = document.createElement('span');
-  countdownSpan.className = 'countdown';
-  countdownSpan.textContent = `(${refreshInterval}s)`;
-  refreshBtn.appendChild(countdownSpan);
+  // Create countdown span if it doesn't exist
+  let countdownSpan = refreshBtn.querySelector('.countdown');
+  if (!countdownSpan) {
+    countdownSpan = document.createElement('span');
+    countdownSpan.className = 'countdown';
+    refreshBtn.appendChild(countdownSpan);
+  }
   
-  // Add click event listener
-  refreshBtn.addEventListener('click', function() {
-    fetchMetrics();
-    resetRefreshTimer();
-  });
+  // Update the initial countdown display
+  updateCountdownDisplay();
 }
 
 // Start the refresh countdown timer
@@ -223,754 +209,557 @@ function resetRefreshTimer() {
 function updateCountdownDisplay() {
   const countdownSpan = document.querySelector('.refresh-btn .countdown');
   if (countdownSpan) {
-    countdownSpan.textContent = `(${remainingTime}s)`;
+    countdownSpan.textContent = ` (${remainingTime}s)`;
   }
 }
 
-// Reset settings to defaults
-function resetSettingsToDefaults() {
-  if (confirm('Are you sure you want to reset all settings to defaults?')) {
-    // Default settings
-    const defaultSettings = {
-      refreshInterval: 60,
-      defaultTimeframe: 'year',
-      defaultView: 'grid',
-      enableAutoRefresh: true,
-      enableNotifications: true
-    };
-    
-    // Save default settings
-    localStorage.setItem('quizAnalyticsSettings', JSON.stringify(defaultSettings));
-    
-    // Update form fields
-    document.getElementById('refreshInterval').value = defaultSettings.refreshInterval;
-    document.getElementById('defaultTimeframe').value = defaultSettings.defaultTimeframe;
-    document.getElementById('defaultView').value = defaultSettings.defaultView;
-    document.getElementById('enableAutoRefresh').checked = defaultSettings.enableAutoRefresh;
-    document.getElementById('enableNotifications').checked = defaultSettings.enableNotifications;
-    
-    // Apply settings
-    refreshInterval = defaultSettings.refreshInterval;
-    currentTimeframe = defaultSettings.defaultTimeframe;
-    currentView = defaultSettings.defaultView;
-    
-    // Reset timer
-    resetRefreshTimer();
-    
-    // Update UI
-    document.getElementById('timeRange').value = currentTimeframe;
-    
-    // Update view buttons
-    document.querySelectorAll('.view-btn').forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.getAttribute('data-view') === currentView) {
-        btn.classList.add('active');
-      }
-    });
-    
-    // Update view mode
-    updateMetricGridView();
-    
-    // Fetch metrics with new timeframe
-    fetchMetrics();
-    
-    // Show success message
-    showSuccessMessage('Settings have been reset to defaults');
-  }
-}
-
-// Initialize navigation links
-function initNavigation() {
-  const navLinks = document.querySelectorAll('.main-nav a');
+// Fetch metrics from the API with timeframe
+function fetchMetrics() {
+  showLoading();
   
-  navLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      
-      // Get the page id from the href
-      const pageId = this.getAttribute('href').substring(1);
-      
-      // Only proceed if it's a valid page
-      if (pageId === '' || pageId === '#') return;
-      
-      // Hide all pages
-      document.querySelectorAll('.page').forEach(page => {
-        page.style.display = 'none';
-      });
-      
-      // Show the selected page
-      const selectedPage = document.getElementById(pageId);
-      if (selectedPage) {
-        selectedPage.style.display = 'block';
-        
-        // Load page-specific content
-        if (pageId === 'history') {
-          loadHistoryPage();
-        } else if (pageId === 'settings') {
-          loadSettingsPage();
-        }
-      }
-      
-      // Update active nav link
-      document.querySelectorAll('.main-nav a').forEach(navLink => {
-        navLink.classList.remove('active');
-      });
-      this.classList.add('active');
-    });
-  });
-}
-
-// Initialize settings functionality
-function initSettings() {
-  // Load saved settings
-  loadSettings();
+  // Construct URL with timeframe parameter
+  const url = `${API_URL}?timeframe=${currentTimeframe}`;
   
-  // Set up settings form
-  const settingsForm = document.getElementById('settings-form');
-  if (settingsForm) {
-    settingsForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      saveSettings();
-    });
-  }
-}
-
-// Load settings from localStorage
-function loadSettings() {
-  try {
-    const savedSettings = localStorage.getItem('quizAnalyticsSettings');
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      
-      // Apply saved settings
-      refreshInterval = settings.refreshInterval || 60;
-      document.getElementById('refreshInterval').value = refreshInterval;
-      
-      // Apply other settings as needed
-      if (settings.defaultTimeframe) {
-        currentTimeframe = settings.defaultTimeframe;
-        document.getElementById('defaultTimeframe').value = currentTimeframe;
+  fetch(url)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
       }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Data received:', data);
+      allMetrics = data;
+      filteredMetrics = { ...data };
       
-      // Reset timer with new interval
+      // Populate metrics for each tab
+      populateMetrics('failbase', data.failbase);
+      populateMetrics('job', data.job);
+      populateMetrics('roleplay', data.roleplay);
+      
+      // Update summary cards for the active tab
+      const activeTab = document.querySelector('.tab.active').getAttribute('data-tab');
+      updateSummaryCards(activeTab);
+      
+      // Initialize performance chart
+      initPerformanceChart(data);
+      
+      // Update timeframe indicator
+      updateTimeframeIndicator();
+      
+      hideLoading();
+      
+      // Reset the refresh timer when new data is loaded
       resetRefreshTimer();
-    }
-  } catch (error) {
-    console.error('Error loading settings:', error);
-  }
-}
-
-// Save settings to localStorage
-function saveSettings() {
-  try {
-    // Get values from form
-    const newRefreshInterval = parseInt(document.getElementById('refreshInterval').value);
-    const newDefaultTimeframe = document.getElementById('defaultTimeframe').value;
-    
-    // Validate refresh interval
-    if (newRefreshInterval < 10) {
-      showErrorMessage('Refresh interval must be at least 10 seconds');
-      return;
-    }
-    
-    // Create settings object
-    const settings = {
-      refreshInterval: newRefreshInterval,
-      defaultTimeframe: newDefaultTimeframe
-    };
-    
-    // Save to localStorage
-    localStorage.setItem('quizAnalyticsSettings', JSON.stringify(settings));
-    
-    // Apply new settings
-    refreshInterval = newRefreshInterval;
-    currentTimeframe = newDefaultTimeframe;
-    
-    // Reset timer with new interval
-    resetRefreshTimer();
-    
-    // Update the timeframe selector
-    document.getElementById('timeRange').value = currentTimeframe;
-    
-    // Fetch metrics with new timeframe
-    fetchMetrics();
-    
-    // Show success message
-    showSuccessMessage('Settings saved successfully');
-  } catch (error) {
-    console.error('Error saving settings:', error);
-    showErrorMessage('Failed to save settings');
-  }
-}
-
-// Load history page content
-function loadHistoryPage() {
-  const historyContainer = document.getElementById('history-content');
-  if (!historyContainer) return;
-  
-  // Show loading indicator
-  historyContainer.innerHTML = '<div class="loading">Loading history data...</div>';
-  
-  // Get history data
-  fetchHistoryData()
-    .then(historyData => {
-      // Create history table
-      createHistoryTable(historyData, historyContainer);
     })
     .catch(error => {
-      console.error('Error loading history:', error);
-      historyContainer.innerHTML = '<div class="error">Failed to load history data</div>';
+      console.error('Error fetching metrics:', error);
+      hideLoading();
+      showErrorMessage(`Failed to load metrics data for ${currentTimeframe}. Please try again later.`);
     });
 }
 
-// Fetch history data 
-function fetchHistoryData() {
-  // Fetch history data from API or create mock data
-  return new Promise((resolve, reject) => {
-    // For now, use mock data based on current metrics
-    setTimeout(() => {
-      // Generate mock history data
-      const quizTypes = ['failbase', 'job', 'roleplay'];
-      const mockHistory = [];
-      
-      quizTypes.forEach(quizType => {
-        if (allMetrics[quizType]) {
-          allMetrics[quizType].forEach(metric => {
-            if (metric.name !== 'Timeframe') {
-              mockHistory.push({
-                date: new Date(),
-                quizType: quizType,
-                metricName: metric.name,
-                value: metric.value,
-                timeframe: currentTimeframe
-              });
-            }
-          });
-        }
-      });
-      
-      // Add some older entries
-      const pastDate1 = new Date();
-      pastDate1.setDate(pastDate1.getDate() - 7);
-      
-      const pastDate2 = new Date();
-      pastDate2.setDate(pastDate2.getDate() - 14);
-      
-      quizTypes.forEach(quizType => {
-        if (allMetrics[quizType]) {
-          allMetrics[quizType].slice(0, 3).forEach(metric => {
-            if (metric.name !== 'Timeframe') {
-              // Add record from a week ago
-              mockHistory.push({
-                date: pastDate1,
-                quizType: quizType,
-                metricName: metric.name,
-                value: randomizeValue(metric.value),
-                timeframe: currentTimeframe
-              });
-              
-              // Add record from two weeks ago
-              mockHistory.push({
-                date: pastDate2,
-                quizType: quizType,
-                metricName: metric.name,
-                value: randomizeValue(metric.value),
-                timeframe: currentTimeframe
-              });
-            }
-          });
-        }
-      });
-      
-      resolve(mockHistory);
-    }, 500);
+// Update timeframe indicator in UI
+function updateTimeframeIndicator() {
+  // Find all trend elements and update them
+  const trendElements = document.querySelectorAll('.card-trend .trend-value');
+  
+  trendElements.forEach(el => {
+    let periodText = '';
+    
+    switch(currentTimeframe) {
+      case 'today':
+        periodText = 'yesterday';
+        break;
+      case 'week':
+        periodText = 'last week';
+        break;
+      case 'month':
+        periodText = 'last month';
+        break;
+      case 'year':
+        periodText = 'last year';
+        break;
+      case 'all':
+        periodText = 'average';
+        break;
+      default:
+        periodText = 'last period';
+    }
+    
+    // Update the parent's text content
+    const parentText = el.parentElement.textContent;
+    const newText = parentText.replace(/from [^)]+/, `from ${periodText}`);
+    el.parentElement.innerHTML = el.parentElement.innerHTML.replace(parentText, newText);
   });
 }
 
-// Helper function to randomize values for mock history data
-function randomizeValue(value) {
-  // Parse numeric values
-  if (typeof value === 'string' && value.endsWith('%')) {
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
-      return `${(numValue + (Math.random() * 10 - 5)).toFixed(1)}%`;
-    }
-  } else if (typeof value === 'string' && value.includes('/')) {
-    const parts = value.split('/');
-    if (parts.length === 2) {
-      const num1 = parseInt(parts[0]);
-      const num2 = parseInt(parts[1]);
-      if (!isNaN(num1) && !isNaN(num2)) {
-        return `${Math.max(0, num1 + Math.floor(Math.random() * 5 - 2))}/${num2}`;
-      }
-    }
-  } else if (!isNaN(parseFloat(value))) {
-    return (parseFloat(value) + (Math.random() * 2 - 1)).toFixed(1);
+// Populate metrics for a specific tab
+function populateMetrics(tabId, metrics) {
+  const metricContainer = document.getElementById(`${tabId}-metrics`);
+  
+  // Clear existing content
+  metricContainer.innerHTML = '';
+  
+  // Check if metrics exist
+  if (!metrics || metrics.length === 0) {
+    metricContainer.innerHTML = '<div class="no-data">No metrics available for this quiz.</div>';
+    return;
   }
   
-  // Return original value if not numeric
-  return value;
-}
-
-// Create history table
-function createHistoryTable(historyData, container) {
-  // Create table structure
-  const table = document.createElement('table');
-  table.className = 'history-table';
-  
-  // Create header
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  
-  ['Date', 'Quiz Type', 'Metric', 'Value', 'Timeframe', 'Actions'].forEach(headerText => {
-    const th = document.createElement('th');
-    th.textContent = headerText;
-    headerRow.appendChild(th);
-  });
-  
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-  
-  // Create table body
-  const tbody = document.createElement('tbody');
-  
-  // Sort history data by date (newest first)
-  historyData.sort((a, b) => b.date - a.date);
-  
-  historyData.forEach(item => {
-    const row = document.createElement('tr');
-    
-    // Date cell
-    const dateCell = document.createElement('td');
-    dateCell.textContent = item.date.toLocaleDateString() + ' ' + item.date.toLocaleTimeString();
-    row.appendChild(dateCell);
-    
-    // Quiz type cell
-    const quizTypeCell = document.createElement('td');
-    quizTypeCell.textContent = item.quizType.charAt(0).toUpperCase() + item.quizType.slice(1);
-    row.appendChild(quizTypeCell);
-    
-    // Metric name cell
-    const metricNameCell = document.createElement('td');
-    metricNameCell.textContent = item.metricName;
-    row.appendChild(metricNameCell);
-    
-    // Value cell
-    const valueCell = document.createElement('td');
-    valueCell.textContent = item.value;
-    row.appendChild(valueCell);
-    
-    // Timeframe cell
-    const timeframeCell = document.createElement('td');
-    timeframeCell.textContent = item.timeframe;
-    row.appendChild(timeframeCell);
-    
-    // Actions cell
-    const actionsCell = document.createElement('td');
-    const viewButton = document.createElement('button');
-    viewButton.className = 'action-btn';
-    viewButton.innerHTML = '<i class="fas fa-chart-line"></i>';
-    viewButton.title = 'View Trend';
-    viewButton.addEventListener('click', function() {
-      showMetricTrend(item);
-    });
-    actionsCell.appendChild(viewButton);
-    row.appendChild(actionsCell);
-    
-    tbody.appendChild(row);
-  });
-  
-  table.appendChild(tbody);
-  
-  // Clear and append to container
-  container.innerHTML = '';
-  
-  // Add filter controls
-  const filterControls = document.createElement('div');
-  filterControls.className = 'filter-controls';
-  
-  // Quiz type filter
-  const quizTypeFilter = document.createElement('select');
-  quizTypeFilter.id = 'quiz-type-filter';
-  
-  const allOption = document.createElement('option');
-  allOption.value = 'all';
-  allOption.textContent = 'All Quiz Types';
-  quizTypeFilter.appendChild(allOption);
-  
-  ['failbase', 'job', 'roleplay'].forEach(quizType => {
-    const option = document.createElement('option');
-    option.value = quizType;
-    option.textContent = quizType.charAt(0).toUpperCase() + quizType.slice(1);
-    quizTypeFilter.appendChild(option);
-  });
-  
-  quizTypeFilter.addEventListener('change', function() {
-    filterHistoryTable();
-  });
-  
-  // Date range filter
-  const dateFilter = document.createElement('select');
-  dateFilter.id = 'date-filter';
-  
-  ['all', 'today', 'week', 'month'].forEach(period => {
-    const option = document.createElement('option');
-    option.value = period;
-    option.textContent = period === 'all' ? 'All Dates' : 
-                        period === 'today' ? 'Today' :
-                        period === 'week' ? 'This Week' : 'This Month';
-    dateFilter.appendChild(option);
-  });
-  
-  dateFilter.addEventListener('change', function() {
-    filterHistoryTable();
-  });
-  
-  // Add the filters to the controls
-  filterControls.innerHTML = '<label>Quiz Type: </label>';
-  filterControls.appendChild(quizTypeFilter);
-  filterControls.innerHTML += '<label>Date Range: </label>';
-  filterControls.appendChild(dateFilter);
-  
-  // Add export button
-  const exportButton = document.createElement('button');
-  exportButton.className = 'export-btn';
-  exportButton.innerHTML = '<i class="fas fa-download"></i> Export CSV';
-  exportButton.addEventListener('click', function() {
-    exportHistoryToCSV(historyData);
-  });
-  filterControls.appendChild(exportButton);
-  
-  container.appendChild(filterControls);
-  container.appendChild(table);
-  
-  // Store history data for filtering
-  container.dataset.historyData = JSON.stringify(historyData);
-}
-
-// Filter history table
-function filterHistoryTable() {
-  const container = document.getElementById('history-content');
-  if (!container) return;
-  
-  // Get filter values
-  const quizTypeFilter = document.getElementById('quiz-type-filter').value;
-  const dateFilter = document.getElementById('date-filter').value;
-  
-  // Get stored history data
-  const historyData = JSON.parse(container.dataset.historyData);
-  
-  // Apply filters
-  const now = new Date();
-  const filtered = historyData.filter(item => {
-    // Quiz type filter
-    if (quizTypeFilter !== 'all' && item.quizType !== quizTypeFilter) {
-      return false;
-    }
-    
-    // Date filter
-    if (dateFilter !== 'all') {
-      const itemDate = new Date(item.date);
-      
-      if (dateFilter === 'today') {
-        // Check if date is today
-        return itemDate.toDateString() === now.toDateString();
-      } else if (dateFilter === 'week') {
-        // Check if date is within the last 7 days
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return itemDate >= weekAgo;
-      } else if (dateFilter === 'month') {
-        // Check if date is within the last 30 days
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        return itemDate >= monthAgo;
-      }
-    }
-    
-    return true;
-  });
-  
-  // Recreate table with filtered data
-  const table = container.querySelector('.history-table');
-  const tbody = document.createElement('tbody');
-  
-  filtered.forEach(item => {
-    const row = document.createElement('tr');
-    
-    // Date cell
-    const dateCell = document.createElement('td');
-    dateCell.textContent = new Date(item.date).toLocaleDateString() + ' ' + new Date(item.date).toLocaleTimeString();
-    row.appendChild(dateCell);
-    
-    // Quiz type cell
-    const quizTypeCell = document.createElement('td');
-    quizTypeCell.textContent = item.quizType.charAt(0).toUpperCase() + item.quizType.slice(1);
-    row.appendChild(quizTypeCell);
-    
-    // Metric name cell
-    const metricNameCell = document.createElement('td');
-    metricNameCell.textContent = item.metricName;
-    row.appendChild(metricNameCell);
-    
-    // Value cell
-    const valueCell = document.createElement('td');
-    valueCell.textContent = item.value;
-    row.appendChild(valueCell);
-    
-    // Timeframe cell
-    const timeframeCell = document.createElement('td');
-    timeframeCell.textContent = item.timeframe;
-    row.appendChild(timeframeCell);
-    
-    // Actions cell
-    const actionsCell = document.createElement('td');
-    const viewButton = document.createElement('button');
-    viewButton.className = 'action-btn';
-    viewButton.innerHTML = '<i class="fas fa-chart-line"></i>';
-    viewButton.title = 'View Trend';
-    viewButton.addEventListener('click', function() {
-      showMetricTrend(item);
-    });
-    actionsCell.appendChild(viewButton);
-    row.appendChild(actionsCell);
-    
-    tbody.appendChild(row);
-  });
-  
-  // Replace old tbody with new one
-  table.removeChild(table.querySelector('tbody'));
-  table.appendChild(tbody);
-}
-
-// Export history data to CSV
-function exportHistoryToCSV(historyData) {
-  // Get filter values
-  const quizTypeFilter = document.getElementById('quiz-type-filter').value;
-  const dateFilter = document.getElementById('date-filter').value;
-  
-  // Apply filters if needed
-  let dataToExport = historyData;
-  
-  if (quizTypeFilter !== 'all' || dateFilter !== 'all') {
-    const now = new Date();
-    dataToExport = historyData.filter(item => {
-      // Quiz type filter
-      if (quizTypeFilter !== 'all' && item.quizType !== quizTypeFilter) {
-        return false;
-      }
-      
-      // Date filter
-      if (dateFilter !== 'all') {
-        const itemDate = new Date(item.date);
-        
-        if (dateFilter === 'today') {
-          // Check if date is today
-          return itemDate.toDateString() === now.toDateString();
-        } else if (dateFilter === 'week') {
-          // Check if date is within the last 7 days
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return itemDate >= weekAgo;
-        } else if (dateFilter === 'month') {
-          // Check if date is within the last 30 days
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          return itemDate >= monthAgo;
-        }
-      }
-      
-      return true;
-    });
+  // If first metric is a "No Data" message, show that
+  if (metrics.length === 1 && metrics[0].name === 'No Data') {
+    metricContainer.innerHTML = `<div class="no-data">${metrics[0].value}</div>`;
+    return;
   }
   
-  // Create CSV content
-  let csvContent = "Date,Quiz Type,Metric Name,Value,Timeframe\n";
-  
-  dataToExport.forEach(item => {
-    const date = new Date(item.date).toISOString();
-    const quizType = item.quizType;
-    const metricName = item.metricName.replace(/,/g, ""); // Remove commas to avoid CSV issues
-    const value = item.value.toString().replace(/,/g, "");
-    const timeframe = item.timeframe;
+  // Add metrics to the container (skip the Timeframe metric)
+  metrics.filter(metric => metric.name !== 'Timeframe').forEach(metric => {
+    const metricBox = document.createElement('div');
+    metricBox.className = `metric-box view-mode-${currentView}`;
     
-    csvContent += `${date},${quizType},${metricName},${value},${timeframe}\n`;
+    if (currentView === 'grid') {
+      metricBox.innerHTML = `
+        <h4 class="metric-name">${metric.name}</h4>
+        <div class="metric-value">${metric.value}</div>
+      `;
+    } else {
+      metricBox.innerHTML = `
+        <h4 class="metric-name">${metric.name}</h4>
+        <div class="metric-value">${metric.value}</div>
+      `;
+    }
+    
+    metricContainer.appendChild(metricBox);
   });
-  
-  // Create download link
-  const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "quiz_analytics_history.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 }
 
-// Show metric trend
-function showMetricTrend(item) {
-  // Create modal for trend visualization
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  
-  const modalContent = document.createElement('div');
-  modalContent.className = 'modal-content';
-  
-  // Close button
-  const closeBtn = document.createElement('span');
-  closeBtn.className = 'close-modal';
-  closeBtn.innerHTML = '&times;';
-  closeBtn.addEventListener('click', function() {
-    document.body.removeChild(modal);
+// Update metric grid view
+function updateMetricGridView() {
+  document.querySelectorAll('.metric-grid').forEach(grid => {
+    if (currentView === 'grid') {
+      grid.className = 'metric-grid view-mode-grid';
+    } else {
+      grid.className = 'metric-grid view-mode-list';
+    }
   });
   
-  // Modal header
-  const modalHeader = document.createElement('div');
-  modalHeader.className = 'modal-header';
-  modalHeader.innerHTML = `<h2>Trend for ${item.metricName}</h2>`;
-  modalHeader.appendChild(closeBtn);
+  document.querySelectorAll('.metric-box').forEach(box => {
+    box.className = `metric-box view-mode-${currentView}`;
+  });
   
-  // Chart container
-  const chartContainer = document.createElement('div');
-  chartContainer.className = 'trend-chart-container';
-  chartContainer.style.height = '300px';
+  // Re-populate metrics with the current view
+  if (filteredMetrics.failbase) {
+    populateMetrics('failbase', filteredMetrics.failbase);
+    populateMetrics('job', filteredMetrics.job);
+    populateMetrics('roleplay', filteredMetrics.roleplay);
+  }
+}
+
+// Filter metrics based on search term
+function filterMetrics(searchTerm) {
+  if (!searchTerm) {
+    filteredMetrics = { ...allMetrics };
+  } else {
+    filteredMetrics = {
+      failbase: allMetrics.failbase ? allMetrics.failbase.filter(metric => 
+        metric.name.toLowerCase().includes(searchTerm)) : [],
+      job: allMetrics.job ? allMetrics.job.filter(metric => 
+        metric.name.toLowerCase().includes(searchTerm)) : [],
+      roleplay: allMetrics.roleplay ? allMetrics.roleplay.filter(metric => 
+        metric.name.toLowerCase().includes(searchTerm)) : []
+    };
+  }
   
-  // Add content to modal
-  modalContent.appendChild(modalHeader);
-  modalContent.appendChild(chartContainer);
-  modal.appendChild(modalContent);
+  // Re-populate metrics with filtered data
+  populateMetrics('failbase', filteredMetrics.failbase);
+  populateMetrics('job', filteredMetrics.job);
+  populateMetrics('roleplay', filteredMetrics.roleplay);
+}
+
+// Get trend indicators and values based on timeframe
+function getTrendData(metrics, tabId) {
+  const weeklyTrendMetric = metrics.find(m => m.name === 'Weekly Trend');
   
-  // Add modal to body
-  document.body.appendChild(modal);
-  
-  // Generate trend data
-  generateTrendData(item).then(trendData => {
-    // Create the chart
-    const canvas = document.createElement('canvas');
-    canvas.id = 'trendChart';
-    chartContainer.appendChild(canvas);
+  if (weeklyTrendMetric) {
+    const trendValue = parseFloat(weeklyTrendMetric.value);
     
-    const ctx = canvas.getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: trendData.dates,
-        datasets: [{
-          label: item.metricName,
-          data: trendData.values,
-          borderColor: '#03a9f4',
-          backgroundColor: 'rgba(3, 169, 244, 0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: false,
-            grid: {
-              color: 'rgba(255, 255, 255, 0.1)'
-            },
-            ticks: {
-              color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
-            }
+    if (!isNaN(trendValue)) {
+      return {
+        isPositive: trendValue >= 0,
+        value: weeklyTrendMetric.value
+      };
+    }
+  }
+  
+  // Default trend if not found
+  return {
+    isPositive: true,
+    value: '0%'
+  };
+}
+
+// Update summary cards based on the selected tab
+function updateSummaryCards(tabId) {
+  let metrics;
+  
+  switch (tabId) {
+    case 'failbase':
+      metrics = allMetrics.failbase || [];
+      break;
+    case 'job':
+      metrics = allMetrics.job || [];
+      break;
+    case 'roleplay':
+      metrics = allMetrics.roleplay || [];
+      break;
+    default:
+      metrics = allMetrics.failbase || [];
+  }
+  
+  // Find total entries
+  const totalEntriesMetric = metrics.find(m => m.name === 'Total Entries');
+  if (totalEntriesMetric) {
+    document.querySelector('#total-attempts .card-value').textContent = totalEntriesMetric.value;
+    
+    // Update trend
+    const totalTrend = getTrendData(metrics, tabId);
+    const totalTrendElement = document.querySelector('#total-attempts .card-trend');
+    
+    totalTrendElement.classList.remove('positive', 'negative');
+    totalTrendElement.classList.add(totalTrend.isPositive ? 'positive' : 'negative');
+    
+    const iconElement = totalTrendElement.querySelector('i');
+    iconElement.classList.remove('fa-arrow-up', 'fa-arrow-down');
+    iconElement.classList.add(totalTrend.isPositive ? 'fa-arrow-up' : 'fa-arrow-down');
+    
+    totalTrendElement.querySelector('.trend-value').textContent = totalTrend.value;
+  }
+  
+  // Find completion rate
+  let completionRateMetric;
+  if (tabId === 'failbase') {
+    completionRateMetric = metrics.find(m => m.name === 'General Participation Rate');
+  } else if (tabId === 'job') {
+    completionRateMetric = metrics.find(m => m.name === 'General Participation Rate');
+  } else {
+    completionRateMetric = metrics.find(m => m.name === 'General Participation Rate');
+  }
+  
+  if (completionRateMetric) {
+    document.querySelector('#completion-rate .card-value').textContent = completionRateMetric.value;
+    
+    // Update trend (assume positive for completion rate)
+    const completionTrend = { isPositive: true, value: '5%' };
+    const completionTrendElement = document.querySelector('#completion-rate .card-trend');
+    
+    completionTrendElement.classList.remove('positive', 'negative');
+    completionTrendElement.classList.add(completionTrend.isPositive ? 'positive' : 'negative');
+    
+    const iconElement = completionTrendElement.querySelector('i');
+    iconElement.classList.remove('fa-arrow-up', 'fa-arrow-down');
+    iconElement.classList.add(completionTrend.isPositive ? 'fa-arrow-up' : 'fa-arrow-down');
+    
+    completionTrendElement.querySelector('.trend-value').textContent = completionTrend.value;
+  }
+  
+  // Find average score
+  const avgScoreMetric = metrics.find(m => m.name === 'Average First Test Result');
+  if (avgScoreMetric) {
+    document.querySelector('#avg-score .card-value').textContent = avgScoreMetric.value;
+    
+    // Update trend (assume negative for average score as example)
+    const scoreTrend = { isPositive: false, value: '2%' };
+    const scoreTrendElement = document.querySelector('#avg-score .card-trend');
+    
+    scoreTrendElement.classList.remove('positive', 'negative');
+    scoreTrendElement.classList.add(scoreTrend.isPositive ? 'positive' : 'negative');
+    
+    const iconElement = scoreTrendElement.querySelector('i');
+    iconElement.classList.remove('fa-arrow-up', 'fa-arrow-down');
+    iconElement.classList.add(scoreTrend.isPositive ? 'fa-arrow-up' : 'fa-arrow-down');
+    
+    scoreTrendElement.querySelector('.trend-value').textContent = scoreTrend.value;
+  }
+}
+
+// Initialize performance chart
+function initPerformanceChart(data) {
+  const chartContainer = document.getElementById('performance-chart');
+  
+  // Clear existing content
+  chartContainer.innerHTML = '';
+  
+  // Create canvas for chart
+  const canvas = document.createElement('canvas');
+  canvas.id = 'quizScoreChart';
+  chartContainer.appendChild(canvas);
+  
+  // Check if we have valid data
+  if (!data.failbase || !data.job || !data.roleplay) {
+    chartContainer.innerHTML = '<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>No data available for the selected timeframe</p></div>';
+    return;
+  }
+  
+  // Prepare data for chart
+  const chartData = {
+    labels: ['Failbase Quiz', 'Job Quiz', 'Roleplay Quiz'],
+    datasets: [{
+      label: 'Average Score',
+      data: [
+        parseFloat(getAverageScoreFromData(data.failbase)),
+        parseFloat(getAverageScoreFromData(data.job)),
+        parseFloat(getAverageScoreFromData(data.roleplay))
+      ],
+      backgroundColor: [
+        'rgba(3, 169, 244, 0.6)',
+        'rgba(255, 87, 34, 0.6)',
+        'rgba(76, 175, 80, 0.6)'
+      ],
+      borderColor: [
+        'rgba(3, 169, 244, 1)',
+        'rgba(255, 87, 34, 1)',
+        'rgba(76, 175, 80, 1)'
+      ],
+      borderWidth: 1
+    }]
+  };
+  
+  // Create chart
+  const ctx = canvas.getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: chartData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 20,
+          ticks: {
+            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
           },
-          x: {
-            grid: {
-              color: 'rgba(255, 255, 255, 0.1)'
-            },
-            ticks: {
-              color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
-            }
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
           }
         },
-        plugins: {
-          legend: {
-            labels: {
-              color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
-            }
+        x: {
+          ticks: {
+            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary')
           },
-          title: {
-            display: true,
-            text: `${item.quizType.charAt(0).toUpperCase() + item.quizType.slice(1)} - ${item.metricName}`,
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
             color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
+          }
+        },
+        title: {
+          display: true,
+          text: `Quiz Performance (${currentTimeframe})`,
+          color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+          font: {
+            size: 16
           }
         }
       }
+    }
+  });
+  
+  // Update insight description
+  updateInsightDescription(data);
+}
+
+// Get average score from data
+function getAverageScoreFromData(data) {
+  const avgScoreMetric = data.find(metric => metric.name === 'Average First Test Result');
+  return avgScoreMetric ? avgScoreMetric.value : '0';
+}
+
+// Update insight description
+function updateInsightDescription(data) {
+  const insightDescription = document.querySelector('.insight-description');
+  if (!insightDescription) return;
+  
+  try {
+    // Get average scores
+    const failbaseAvg = parseFloat(getAverageScoreFromData(data.failbase));
+    const jobAvg = parseFloat(getAverageScoreFromData(data.job));
+    const roleplayAvg = parseFloat(getAverageScoreFromData(data.roleplay));
+    
+    // Find highest and lowest performing quizzes
+    const scores = [
+      { name: 'Failbase Quiz', value: failbaseAvg },
+      { name: 'Job Quiz', value: jobAvg },
+      { name: 'Roleplay Quiz', value: roleplayAvg }
+    ];
+    
+    scores.sort((a, b) => b.value - a.value);
+    
+    const highestQuiz = scores[0];
+    const lowestQuiz = scores[scores.length - 1];
+    
+    // Create insight text
+    let insightText = `Based on the data for ${currentTimeframe}, ${highestQuiz.name} has the highest average score of ${highestQuiz.value}, while ${lowestQuiz.name} has the lowest average of ${lowestQuiz.value}.`;
+    
+    // Add trend insight if available
+    const failbaseTrend = data.failbase.find(m => m.name === 'Weekly Trend');
+    const jobTrend = data.job.find(m => m.name === 'Weekly Trend');
+    const roleplayTrend = data.roleplay.find(m => m.name === 'Weekly Trend');
+    
+    if (failbaseTrend && jobTrend && roleplayTrend) {
+      const fbTrend = parseFloat(failbaseTrend.value);
+      const jTrend = parseFloat(jobTrend.value);
+      const rpTrend = parseFloat(roleplayTrend.value);
+      
+      const trends = [
+        { name: 'Failbase Quiz', value: fbTrend },
+        { name: 'Job Quiz', value: jTrend },
+        { name: 'Roleplay Quiz', value: rpTrend }
+      ];
+      
+      trends.sort((a, b) => b.value - a.value);
+      
+      const improvingQuiz = trends[0];
+      
+      if (improvingQuiz.value > 0) {
+        insightText += ` ${improvingQuiz.name} is showing the strongest improvement with a ${improvingQuiz.value}% increase.`;
+      }
+    }
+    
+    insightDescription.textContent = insightText;
+    
+    // Update improvement areas
+    updateImprovementAreas(data);
+  } catch (error) {
+    console.error('Error updating insights:', error);
+    insightDescription.textContent = 'Unable to generate insights from the current data.';
+  }
+}
+
+// Update improvement areas list
+function updateImprovementAreas(data) {
+  const improvementList = document.querySelector('.improvement-list');
+  if (!improvementList) return;
+  
+  // Clear existing items
+  improvementList.innerHTML = '';
+  
+  try {
+    // Get participation rates
+    const failbaseRate = data.failbase.find(m => m.name === 'General Participation Rate');
+    const jobRate = data.job.find(m => m.name === 'General Participation Rate');
+    const roleplayRate = data.roleplay.find(m => m.name === 'General Participation Rate');
+    
+    // Get pass rates
+    const failbasePass = data.failbase.find(m => m.name === 'Pass Rate');
+    const jobPass = data.job.find(m => m.name === 'Pass Rate');
+    const roleplayPass = data.roleplay.find(m => m.name === 'Pass Rate');
+    
+    // Create improvement items
+    const items = [];
+    
+    // Check participation rates
+    if (failbaseRate && parseFloat(failbaseRate.value) < 70) {
+      items.push('Increase participation in Failbase Quiz (currently ' + failbaseRate.value + ')');
+    }
+    
+    if (jobRate && parseFloat(jobRate.value) < 70) {
+      items.push('Improve participation in Job Quiz (currently ' + jobRate.value + ')');
+    }
+    
+    if (roleplayRate && parseFloat(roleplayRate.value) < 70) {
+      items.push('Boost participation in Roleplay Quiz (currently ' + roleplayRate.value + ')');
+    }
+    
+    // Check pass rates
+    if (failbasePass && parseFloat(failbasePass.value) < 80) {
+      items.push('Work on improving Failbase Quiz pass rate (currently ' + failbasePass.value + ')');
+    }
+    
+    if (jobPass && parseFloat(jobPass.value) < 80) {
+      items.push('Focus on increasing Job Quiz pass rate (currently ' + jobPass.value + ')');
+    }
+    
+    if (roleplayPass && parseFloat(roleplayPass.value) < 80) {
+      items.push('Enhance Roleplay Quiz pass rate (currently ' + roleplayPass.value + ')');
+    }
+    
+    // If no specific improvements found, add general suggestion
+    if (items.length === 0) {
+      items.push('All metrics are performing well. Consider setting higher targets for next period.');
+    }
+    
+    // Add items to the list
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      improvementList.appendChild(li);
     });
-  });
+  } catch (error) {
+    console.error('Error updating improvement areas:', error);
+    improvementList.innerHTML = '<li>Unable to generate improvement suggestions from the current data.</li>';
+  }
 }
 
-// Generate trend data for a metric
-function generateTrendData(item) {
-  // For now, generate mock trend data
-  return new Promise(resolve => {
-    const dates = [];
-    const values = [];
-    
-    // Generate data points for the last 30 days
-    const endDate = new Date();
-    
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date(endDate.getTime() - (i * 24 * 60 * 60 * 1000));
-      dates.push(date.toLocaleDateString());
-      
-      // Generate a value based on the item value
-      const baseValue = parseNumericValue(item.value);
-      
-      // Add some random variation and a slight trend
-      const trend = (30 - i) / 30 * 0.2; // 0-20% increase over time
-      const random = Math.random() * 0.1 - 0.05; // +/- 5% random noise
-      
-      const value = baseValue * (1 + trend + random);
-      
-      // Format value according to the original format
-      if (typeof item.value === 'string' && item.value.endsWith('%')) {
-        values.push(value.toFixed(1));
-      } else if (typeof item.value === 'string' && item.value.includes('/')) {
-        // For ratios, only adjust the first number
-        const parts = item.value.split('/');
-        if (parts.length === 2) {
-          const adjustedValue = Math.round(value);
-          values.push(adjustedValue);
-        } else {
-          values.push(value.toFixed(1));
-        }
-      } else {
-        values.push(value.toFixed(1));
-      }
-    }
-    
-    resolve({ dates, values });
-  });
+// Show loading overlay
+function showLoading() {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  if (loadingOverlay) {
+    loadingOverlay.classList.add('show');
+  }
 }
 
-// Parse numeric value from various formats
-function parseNumericValue(value) {
-  if (typeof value === 'number') {
-    return value;
+// Hide loading overlay
+function hideLoading() {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  if (loadingOverlay) {
+    loadingOverlay.classList.remove('show');
   }
-  
-  if (typeof value === 'string') {
-    // Handle percentage
-    if (value.endsWith('%')) {
-      return parseFloat(value.replace('%', ''));
-    }
-    
-    // Handle ratio (e.g. 10/20)
-    if (value.includes('/')) {
-      const parts = value.split('/');
-      if (parts.length === 2) {
-        return parseInt(parts[0], 10);
-      }
-    }
-    
-    // Try to parse as a simple number
-    const parsed = parseFloat(value);
-    if (!isNaN(parsed)) {
-      return parsed;
-    }
-  }
-  
-  // Default value if parsing fails
-  return 0;
 }
+
+// Show error message
+function showErrorMessage(message) {
+  // Get error banner template
+  const template = document.getElementById('error-banner-template');
+  if (!template) return;
+  
+  // Create error banner from template
+  const errorBanner = template.content.cloneNode(true);
+  
+  // Set message
+  errorBanner.querySelector('p').textContent = message;
+  
+  // Add to DOM
+  document.body.appendChild(errorBanner);
+  
+  // Set event listener for close button
+  const closeButton = document.body.querySelector('.error-banner button');
+  closeButton.addEventListener('click', function() {
+    document.body.removeChild(document.querySelector('.error-banner'));
+  });
+  
+  // Auto-hide after 5 seconds
+  setTimeout(function() {
+    const banner = document.querySelector('.error-banner');
+    if (banner) {
+      document.body.removeChild(banner);
+    }
+  }, 5000);
+}
+
+// Add CSS for countdown timer
+const countdownStyle = document.createElement('style');
+countdownStyle.textContent = `
+  .refresh-btn .countdown {
+    opacity: 0.8;
+    margin-left: 5px;
+    font-size: 0.9em;
+  }
+`;
+document.head.appendChild(countdownStyle);
