@@ -94,7 +94,7 @@ function initializeNavigation() {
   navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
-      const targetId = link.getAttribute('href').substring(1); // Remove #
+      const targetId = link.getAttribute('href').substring(1);
       
       // Update active state
       navLinks.forEach(l => l.classList.remove('active'));
@@ -107,12 +107,15 @@ function initializeNavigation() {
       
       // Show target section
       if (targetId === '') {
-        // Show dashboard (first section) for empty href
         document.querySelector('.dashboard-overview').style.display = 'block';
       } else {
         const targetSection = document.getElementById(`${targetId}-section`);
         if (targetSection) {
           targetSection.style.display = 'block';
+          // Trigger analytics update when switching to analytics section
+          if (targetId === 'analytics') {
+            updateAnalytics();
+          }
         }
       }
     });
@@ -407,9 +410,15 @@ function updateAnalytics() {
 function updateTrendChart() {
   const ctx = document.getElementById('trendChart')?.getContext('2d');
   if (!ctx) return;
-  
-  const trendData = getTrendData();
-  const labels = generateTimeLabels();
+
+  const trendData = Object.entries(allMetrics).map(([quizType, metrics]) => {
+    const performanceCategory = metrics.find(category => 
+      category.category === 'Performance');
+    return performanceCategory?.metrics.find(m => 
+      m.name === 'Average First Test Result')?.value || 0;
+  });
+
+  const labels = ['Failbase', 'Job', 'Roleplay'];
   
   try {
     if (chartInstances.trend) {
@@ -421,8 +430,8 @@ function updateTrendChart() {
       data: {
         labels: labels,
         datasets: [{
-          label: 'Score Trends',
-          data: trendData.map(t => t.value),
+          label: 'Average Scores',
+          data: trendData,
           borderColor: 'rgba(3, 169, 244, 1)',
           tension: 0.4
         }]
@@ -442,41 +451,25 @@ function updateTrendChart() {
   }
 }
 
-// Add generateTimeLabels function
-function generateTimeLabels() {
-  const labels = [];
-  const today = new Date();
+function analyzePatterns() {
+  if (!allMetrics) return [];
   
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    labels.push(date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    }));
-  }
-  
-  return labels;
-}
-
-function getTrendData() {
-  const currentDate = new Date();
-  const dates = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(currentDate);
-    date.setDate(date.getDate() - i);
-    dates.push(date.toISOString().split('T')[0]);
-  }
-
-  return dates.map(date => {
-    const metrics = Object.values(allMetrics).map(quizType => {
-      const dayMetrics = quizType.find(m => m.date === date);
-      return dayMetrics ? parseFloat(dayMetrics.value) || 0 : 0;
-    });
+  return Object.entries(allMetrics).map(([quizType, metrics]) => {
+    const performanceMetrics = metrics.find(category => 
+      category.category === 'Performance')?.metrics || [];
+    const progressMetrics = metrics.find(category => 
+      category.category === 'Progress')?.metrics || [];
+    
+    const avgScore = parseFloat(performanceMetrics.find(m => 
+      m.name === 'Average First Test Result')?.value) || 0;
+    const perfectScores = parseInt(performanceMetrics.find(m => 
+      m.name === 'Perfect Scores')?.value) || 0;
+    const firstTimePassRate = parseFloat(progressMetrics.find(m => 
+      m.name === 'First-Time Pass Rate')?.value) || 0;
     
     return {
-      date,
-      value: metrics.reduce((sum, val) => sum + val, 0) / metrics.length
+      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Analysis`,
+      description: `Average score: ${avgScore.toFixed(1)}, Perfect scores: ${perfectScores}, First-time pass rate: ${firstTimePassRate}%`
     };
   });
 }
@@ -492,18 +485,6 @@ function updatePatternAnalysis() {
       <p>${pattern.description}</p>
     </div>
   `).join('');
-}
-
-function analyzePatterns() {
-  return Object.entries(allMetrics).map(([quizType, metrics]) => {
-    const avgScore = parseFloat(metrics.find(m => m.name === 'Average First Test Result')?.value) || 0;
-    const passRate = parseFloat(metrics.find(m => m.name === 'Pass Rate')?.value) || 0;
-    
-    return {
-      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Analysis`,
-      description: `Average score: ${avgScore.toFixed(1)}, Pass rate: ${passRate.toFixed(1)}%`
-    };
-  });
 }
 
 function updateProgressTracking() {
@@ -616,29 +597,32 @@ function calculateProgress() {
 
 function updatePredictiveInsights() {
   const predictiveInsights = document.getElementById('predictiveInsights');
-  if (!predictiveInsights) return;
+  if (!predictiveInsights || !allMetrics) return;
 
-  // Generate insights based on available data
-  const insights = [];
-  
-  Object.entries(allMetrics).forEach(([quizType, metrics]) => {
-    const avgScore = parseFloat(metrics.find(m => m.name === 'Average First Test Result')?.value) || 0;
-    const passRate = parseFloat(metrics.find(m => m.name === 'Pass Rate')?.value) || 0;
+  const insights = Object.entries(allMetrics).map(([quizType, metrics]) => {
+    const performanceMetrics = metrics.find(category => 
+      category.category === 'Performance')?.metrics || [];
+    const progressMetrics = metrics.find(category => 
+      category.category === 'Progress')?.metrics || [];
     
-    let insight = {
-      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Prediction`,
-      description: ''
-    };
-
+    const avgScore = parseFloat(performanceMetrics.find(m => 
+      m.name === 'Average First Test Result')?.value) || 0;
+    const firstTimePassRate = parseFloat(progressMetrics.find(m => 
+      m.name === 'First-Time Pass Rate')?.value) || 0;
+    
+    let recommendation;
     if (avgScore < 14) {
-      insight.description = `Consider reviewing the ${quizType} material as scores are below passing threshold.`;
-    } else if (passRate < 70) {
-      insight.description = `While average scores are good, pass rate could be improved for ${quizType}.`;
+      recommendation = 'Focus on improving initial scores through better preparation.';
+    } else if (firstTimePassRate < 70) {
+      recommendation = 'Maintain good average scores while working on consistency.';
     } else {
-      insight.description = `${quizType} performance is strong. Consider maintaining current approach.`;
+      recommendation = 'Strong performance. Consider helping others improve.';
     }
-
-    insights.push(insight);
+    
+    return {
+      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Insights`,
+      description: recommendation
+    };
   });
 
   predictiveInsights.innerHTML = insights.map(insight => `
