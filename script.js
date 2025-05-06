@@ -202,7 +202,7 @@ function getAverageScoreFromData(data) {
   return avgScoreMetric ? avgScoreMetric.value : '0';
 }
 
-// Update insight description
+// Updated insight description function with better wording
 function updateInsightDescription(data) {
   const insightDescription = document.querySelector('.insight-description');
   if (!insightDescription) return;
@@ -226,7 +226,27 @@ function updateInsightDescription(data) {
     const lowestQuiz = scores[scores.length - 1];
     
     // Create insight text
-    let insightText = `Based on the data for ${currentTimeframe}, ${highestQuiz.name} has the highest average score of ${highestQuiz.value}, while ${lowestQuiz.name} has the lowest average of ${lowestQuiz.value}.`;
+    let insightText = "";
+    
+    // Check if we have valid scores to compare
+    if (!isNaN(highestQuiz.value) && !isNaN(lowestQuiz.value)) {
+      // Only mention comparison if there's an actual difference
+      if (highestQuiz.value !== lowestQuiz.value) {
+        insightText = `For the selected ${currentTimeframe} timeframe, ${highestQuiz.name} has the highest average score (${highestQuiz.value})`;
+        
+        // Only add lowest if there's a meaningful difference
+        if (Math.abs(highestQuiz.value - lowestQuiz.value) > 0.1) {
+          insightText += ` compared to ${lowestQuiz.name} (${lowestQuiz.value}).`;
+        } else {
+          insightText += ".";
+        }
+      } else {
+        // If all scores are the same
+        insightText = `For the selected ${currentTimeframe} timeframe, all quizzes have the same average score (${highestQuiz.value}).`;
+      }
+    } else {
+      insightText = `Not enough data available for the ${currentTimeframe} timeframe to generate insights.`;
+    }
     
     // Add trend insight if available
     const failbaseTrend = data.failbase.find(m => m.name === 'Weekly Trend');
@@ -244,12 +264,19 @@ function updateInsightDescription(data) {
         { name: 'Roleplay Quiz', value: rpTrend }
       ];
       
-      trends.sort((a, b) => b.value - a.value);
+      // Filter for only positive trends
+      const positiveTrends = trends.filter(t => !isNaN(t.value) && t.value > 0);
       
-      const improvingQuiz = trends[0];
-      
-      if (improvingQuiz.value > 0) {
-        insightText += ` ${improvingQuiz.name} is showing the strongest improvement with a ${improvingQuiz.value}% increase.`;
+      if (positiveTrends.length > 0) {
+        // Sort by value (highest first)
+        positiveTrends.sort((a, b) => b.value - a.value);
+        
+        const improvingQuiz = positiveTrends[0];
+        
+        // Only mention significant improvements (more than 1%)
+        if (improvingQuiz.value > 1) {
+          insightText += ` ${improvingQuiz.name} is showing improvement with a ${improvingQuiz.value}% change compared to the previous period.`;
+        }
       }
     }
     
