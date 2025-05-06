@@ -33,7 +33,7 @@
 html,
 body {
   height: 100%;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   font-size: 16px;
   color: var(--text-primary);
   background-color: var(--bg-primary);
@@ -303,7 +303,8 @@ ul {
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
   width: 200px;
-  transition: width var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+  transition: width var(--transition-speed) ease,
+    box-shadow var(--transition-speed) ease;
 }
 
 .search-box i {
@@ -346,7 +347,8 @@ ul {
   display: none;
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease;
+  transition: opacity var(--transition-speed) ease,
+    transform var(--transition-speed) ease;
 }
 
 .tab-content.active {
@@ -378,7 +380,8 @@ ul {
   box-shadow: var(--box-shadow);
   position: relative;
   overflow: hidden;
-  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+  transition: transform var(--transition-speed) ease,
+    box-shadow var(--transition-speed) ease;
 }
 
 .metric-box:hover {
@@ -387,13 +390,17 @@ ul {
 }
 
 .metric-box::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(to right, var(--primary-color), var(--primary-light));
+  background: linear-gradient(
+    to right,
+    var(--primary-color),
+    var(--primary-light)
+  );
 }
 
 .metric-name {
@@ -425,7 +432,12 @@ ul {
 
 .placeholder-box {
   height: 120px;
-  background: linear-gradient(110deg, var(--bg-secondary) 8%, var(--bg-card) 18%, var(--bg-secondary) 33%);
+  background: linear-gradient(
+    110deg,
+    var(--bg-secondary) 8%,
+    var(--bg-card) 18%,
+    var(--bg-secondary) 33%
+  );
   border-radius: var(--border-radius);
   background-size: 200% 100%;
   animation: shine 1.5s linear infinite;
@@ -525,7 +537,7 @@ canvas {
 }
 
 .improvement-list li::before {
-  content: '•';
+  content: "•";
   color: var(--warning-color);
   font-size: 20px;
   position: absolute;
@@ -553,7 +565,8 @@ canvas {
   border-radius: var(--border-radius);
   padding: 24px;
   box-shadow: var(--box-shadow);
-  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+  transition: transform var(--transition-speed) ease,
+    box-shadow var(--transition-speed) ease;
 }
 
 .analytics-card:hover {
@@ -643,7 +656,11 @@ canvas {
   align-items: flex-start;
   gap: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.02)
+  );
   border-radius: var(--border-radius);
   margin-bottom: 12px;
   transition: transform var(--transition-speed) ease;
@@ -780,7 +797,8 @@ canvas {
 .social-links a {
   color: var(--text-secondary);
   font-size: 18px;
-  transition: color var(--transition-speed) ease, transform var(--transition-speed) ease;
+  transition: color var(--transition-speed) ease,
+    transform var(--transition-speed) ease;
 }
 
 .social-links a:hover {
@@ -983,7 +1001,7 @@ canvas {
   margin-right: 8px;
 }
 
-.form-group input[type="checkbox"]+label {
+.form-group input[type="checkbox"] + label {
   display: inline;
 }
 
@@ -1059,7 +1077,8 @@ canvas {
   align-items: center;
   gap: 10px;
   opacity: 0;
-  transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
+  transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+    opacity 0.3s ease;
   z-index: 1000;
   box-shadow: var(--box-shadow);
 }
