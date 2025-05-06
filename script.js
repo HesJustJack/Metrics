@@ -858,26 +858,26 @@ function showSuccessMessage() {
       <span>Settings saved successfully!</span>
     `;
 
-    // Add the element to the settings actions container
-    const settingsActions = document.querySelector('.settings-actions');
-    if (settingsActions) {
-      settingsActions.appendChild(successMessage);
-    }
+    // Add to body instead of settings actions
+    document.body.appendChild(successMessage);
   }
 
-  // Remove existing animation classes
-  successMessage.classList.remove('show');
+  // Remove existing classes
+  successMessage.classList.remove('show', 'hide');
   
-  // Force a reflow to restart the animation
+  // Force a reflow
   void successMessage.offsetWidth;
   
   // Show the success message
   successMessage.classList.add('show');
 
-  // Auto hide after 3 seconds
-  setTimeout(function () {
-    successMessage.classList.remove('show');
-  }, 3000);
+  // Hide after 3 seconds
+  setTimeout(() => {
+    successMessage.classList.add('hide');
+    setTimeout(() => {
+      successMessage.classList.remove('show', 'hide');
+    }, 500);
+  }, 2000);
 }
 
 // Function to load settings from localStorage into form
