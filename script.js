@@ -690,19 +690,53 @@ function displayMetrics(metrics, containerId) {
     return;
   }
 
-  // Filter out the Timeframe metric
-  const filteredMetrics = metrics.filter(metric => metric.name !== 'Timeframe');
+  // Create category filters
+  const categories = metrics.map(category => category.category);
+  const filterHtml = `
+    <div class="category-filters">
+      <button class="category-filter active" data-category="all">All</button>
+      ${categories.map(cat => `
+        <button class="category-filter" data-category="${cat}">${cat}</button>
+      `).join('')}
+    </div>
+  `;
 
-  container.innerHTML = filteredMetrics.map(metric => {
-    const value = metric.value ?? 'N/A';
-    const name = metric.name ?? 'Unknown Metric';
-    return `
-      <div class="metric-box">
-        <h4 class="metric-name">${name}</h4>
-        <p class="metric-value">${value}</p>
+  // Create metrics sections
+  const metricsHtml = metrics.map(category => `
+    <div class="metrics-category" data-category="${category.category}">
+      <h3 class="category-title">${category.category}</h3>
+      <div class="metric-grid view-mode-grid">
+        ${category.metrics.map(metric => `
+          <div class="metric-box" data-category="${category.category}">
+            <h4 class="metric-name">${metric.name}</h4>
+            <p class="metric-value">${metric.value}</p>
+          </div>
+        `).join('')}
       </div>
-    `;
-  }).join('');
+    </div>
+  `).join('');
+
+  container.innerHTML = filterHtml + metricsHtml;
+
+  // Add filter functionality
+  container.querySelectorAll('.category-filter').forEach(button => {
+    button.addEventListener('click', () => {
+      // Update active filter
+      container.querySelectorAll('.category-filter').forEach(btn => 
+        btn.classList.remove('active'));
+      button.classList.add('active');
+
+      // Show/hide categories
+      const selectedCategory = button.dataset.category;
+      container.querySelectorAll('.metrics-category').forEach(category => {
+        if (selectedCategory === 'all' || category.dataset.category === selectedCategory) {
+          category.style.display = 'block';
+        } else {
+          category.style.display = 'none';
+        }
+      });
+    });
+  });
 }
 
 // Add missing showError function
