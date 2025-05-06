@@ -264,13 +264,52 @@ ul {
 .tabs-container {
   background: var(--bg-secondary);
   border-radius: var(--border-radius);
-  padding: 16px;
+  padding: 24px;
   margin-bottom: 24px;
+}
+
+.tab-controls-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px; /* Increased spacing between tabs and controls */
 }
 
 .tabs {
   display: flex;
-  gap: 8px;
+  gap: 16px; /* Increased spacing between tabs */
+  flex-wrap: nowrap;
+}
+
+.tab {
+  white-space: nowrap;
+  padding: 12px 20px; /* Increased padding */
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab i {
+  margin-right: 8px;
+}
+
+.tab-controls {
+  display: flex;
+  gap: 24px; /* Increased spacing between controls */
+  align-items: center;
+}
+
+.search-box {
+  min-width: 250px; /* Ensure search box has enough width */
+}
+
+.search-box input {
+  width: 100%;
+  padding: 10px 16px 10px 38px;
+}
+
+/* Update metric box to remove timeframe display */
+.metric-box[data-metric="Timeframe"] {
+  display: none;
 }
 
 /* Combine similar button styles */
@@ -735,6 +774,21 @@ canvas {
 
   .analytics-card {
     min-height: 350px;
+  }
+
+  .tab-controls-wrapper {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .tabs {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tab-controls {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 

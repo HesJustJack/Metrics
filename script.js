@@ -690,7 +690,10 @@ function displayMetrics(metrics, containerId) {
     return;
   }
 
-  container.innerHTML = metrics.map(metric => {
+  // Filter out the Timeframe metric
+  const filteredMetrics = metrics.filter(metric => metric.name !== 'Timeframe');
+
+  container.innerHTML = filteredMetrics.map(metric => {
     const value = metric.value ?? 'N/A';
     const name = metric.name ?? 'Unknown Metric';
     return `

@@ -83,11 +83,12 @@
             <h2>Quiz Performance Dashboard</h2>
             <div class="date-filter">
               <select id="timeRange">
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="year" selected>This Year</option>
-                <option value="all">All Time</option>
+                <option value="1">Last 24 hours</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="180">Last 6 months</option>
+                <option value="365" selected>Last 365 days</option>
+                <option value="all">All time</option>
               </select>
               <button class="refresh-btn" data-action="refresh">
                 <i class="fas fa-sync-alt"></i> Refresh
@@ -135,44 +136,45 @@
 
           <!-- Tab Navigation -->
           <div class="tabs-container">
-            <div class="tabs">
-              <div class="tab active" data-tab="failbase">
-                <i class="fas fa-exclamation-triangle"></i> Failbase Quiz
+            <div class="tab-controls-wrapper">
+              <div class="tabs">
+                <div class="tab active" data-tab="failbase">
+                  <i class="fas fa-exclamation-triangle"></i> Failbase
+                </div>
+                <div class="tab" data-tab="job">
+                  <i class="fas fa-briefcase"></i> Job
+                </div>
+                <div class="tab" data-tab="roleplay">
+                  <i class="fas fa-theater-masks"></i> Roleplay
+                </div>
               </div>
-              <div class="tab" data-tab="job">
-                <i class="fas fa-briefcase"></i> Job Quiz
-              </div>
-              <div class="tab" data-tab="roleplay">
-                <i class="fas fa-theater-masks"></i> Roleplay Quiz
-              </div>
-            </div>
 
-            <!-- Search and Filter Controls -->
-            <div class="tab-controls">
-              <div class="search-box">
-                <input
-                  type="text"
-                  placeholder="Search metrics..."
-                  id="metric-search"
-                  aria-label="Search metrics"
-                />
-                <i class="fas fa-search"></i>
-              </div>
-              <div class="view-toggle">
-                <button
-                  class="view-btn active"
-                  data-action="toggleView"
-                  data-view="grid"
-                >
-                  <i class="fas fa-th"></i>
-                </button>
-                <button
-                  class="view-btn"
-                  data-action="toggleView"
-                  data-view="list"
-                >
-                  <i class="fas fa-list"></i>
-                </button>
+              <div class="tab-controls">
+                <div class="search-box">
+                  <input
+                    type="text"
+                    placeholder="Search metrics..."
+                    id="metric-search"
+                    aria-label="Search metrics"
+                  />
+                  <i class="fas fa-search"></i>
+                </div>
+                <div class="view-toggle">
+                  <button
+                    class="view-btn active"
+                    data-action="toggleView"
+                    data-view="grid"
+                  >
+                    <i class="fas fa-th"></i>
+                  </button>
+                  <button
+                    class="view-btn"
+                    data-action="toggleView"
+                    data-view="list"
+                  >
+                    <i class="fas fa-list"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
