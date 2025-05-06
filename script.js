@@ -29,6 +29,34 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   startAutoRefresh();
+
+  // Add tab click handlers
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Remove active class from all tabs and contents
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      // Add active class to clicked tab and its content
+      tab.classList.add('active');
+      const tabId = tab.getAttribute('data-tab');
+      document.getElementById(tabId)?.classList.add('active');
+      
+      updateDashboard();
+    });
+  });
+
+  // Add view toggle functionality
+  document.querySelectorAll('[data-action="toggleView"]').forEach(button => {
+    button.addEventListener('click', () => {
+      const view = button.getAttribute('data-view');
+      document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      document.querySelectorAll('.metric-grid').forEach(grid => {
+        grid.className = `metric-grid view-mode-${view}`;
+      });
+    });
+  });
 });
 
 function initializeNavigation() {
@@ -343,13 +371,16 @@ function updateAnalytics() {
 }
 
 function updateTrendChart() {
-  const ctx = document.getElementById('trendChart').getContext('2d');
+  const ctx = document.getElementById('trendChart')?.getContext('2d');
+  if (!ctx) return;
+  
   const trendData = getTrendData();
+  const labels = generateTimeLabels();
   
   new Chart(ctx, {
     type: 'line',
     data: {
-      labels: generateTimeLabels(),
+      labels: labels,
       datasets: [{
         label: 'Score Trends',
         data: trendData.map(t => t.value),
@@ -361,11 +392,29 @@ function updateTrendChart() {
       responsive: true,
       scales: {
         y: {
-          beginAtZero: true
+          beginAtZero: true,
+          max: 20
         }
       }
     }
   });
+}
+
+// Add generateTimeLabels function
+function generateTimeLabels() {
+  const labels = [];
+  const today = new Date();
+  
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    labels.push(date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    }));
+  }
+  
+  return labels;
 }
 
 function getTrendData() {
@@ -453,6 +502,58 @@ function calculateProgress() {
     
     return acc;
   }, {});
+}
+
+function updatePredictiveInsights() {
+  const predictiveInsights = document.getElementById('predictiveInsights');
+  if (!predictiveInsights) return;
+
+  // Generate insights based on available data
+  const insights = [];
+  
+  Object.entries(allMetrics).forEach(([quizType, metrics]) => {
+    const avgScore = parseFloat(metrics.find(m => m.name === 'Average First Test Result')?.value) || 0;
+    const passRate = parseFloat(metrics.find(m => m.name === 'Pass Rate')?.value) || 0;
+    
+    let insight = {
+      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Prediction`,
+      description: ''
+    };
+
+    if (avgScore < 14) {
+      insight.description = `Consider reviewing the ${quizType} material as scores are below passing threshold.`;
+    } else if (passRate < 70) {
+      insight.description = `While average scores are good, pass rate could be improved for ${quizType}.`;
+    } else {
+      insight.description = `${quizType} performance is strong. Consider maintaining current approach.`;
+    }
+
+    insights.push(insight);
+  });
+
+  predictiveInsights.innerHTML = insights.map(insight => `
+    <div class="insight-item">
+      <h4>${insight.title}</h4>
+      <p>${insight.description}</p>
+    </div>
+  `).join('');
+}
+
+function updateInsightDescription(data) {
+  const insightDescription = document.querySelector('.insight-description');
+  if (!insightDescription) return;
+
+  const avgScores = {
+    failbase: parseFloat(getAverageScoreFromData(data.failbase)),
+    job: parseFloat(getAverageScoreFromData(data.job)),
+    roleplay: parseFloat(getAverageScoreFromData(data.roleplay))
+  };
+
+  const bestQuiz = Object.entries(avgScores).reduce((a, b) => 
+    avgScores[a] > avgScores[b[0]] ? a : b[0]);
+
+  insightDescription.textContent = 
+    `Based on current data, ${bestQuiz} shows the strongest performance with an average score of ${avgScores[bestQuiz].toFixed(1)}.`;
 }
 
 // Additional functions and logic remain unchanged
