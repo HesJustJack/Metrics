@@ -537,45 +537,37 @@ ul {
 
 /* Metrics Categories */
 .metrics-category {
-  margin-bottom: 30px;
+  margin-bottom: 40px;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  padding: 24px;
 }
 
 .category-title {
   color: var(--primary-color);
-  font-size: 18px;
-  margin-bottom: 15px;
-  padding-bottom: 8px;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.metric-grid {
+.metrics-category .metric-grid {
   display: grid;
-  gap: 20px;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 
-.metric-grid.view-mode-list {
+.metrics-category .metric-grid.view-mode-list {
   grid-template-columns: 1fr;
 }
 
-.metrics-category .metric-grid {
-  margin-bottom: 20px;
-}
-
 /* Ensure consistent metric box styling */
-.metric-box {
-  background-color: var(--bg-card);
-  border-radius: var(--border-radius);
-  padding: 24px;
-  text-align: center;
-  box-shadow: var(--box-shadow);
-  position: relative;
-  overflow: hidden;
-  transition: transform var(--transition-speed) ease,
-    box-shadow var(--transition-speed) ease;
+.metrics-category .metric-box {
+  background: var(--bg-card);
+  min-height: 120px;
 }
 
-/* Update metric grid layout */
 .metrics-category .metric-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

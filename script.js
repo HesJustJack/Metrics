@@ -685,26 +685,15 @@ function displayMetrics(metrics, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  if (!metrics || (Array.isArray(metrics) && metrics.length === 0)) {
+  if (!metrics || !Array.isArray(metrics)) {
     container.innerHTML = '<div class="no-data">No metrics available</div>';
     return;
   }
 
-  if (Array.isArray(metrics)) {
-    // Handle legacy array format with single grid
+  // Check if the first item has a metrics array (indicating categorized data)
+  if (metrics[0] && metrics[0].metrics) {
+    // Data is already categorized
     const metricsHtml = metrics
-      .filter(metric => metric.name !== 'Timeframe')
-      .map(metric => `
-        <div class="metric-box">
-          <h4 class="metric-name">${metric.name}</h4>
-          <p class="metric-value">${metric.value}</p>
-        </div>
-      `).join('');
-
-    container.innerHTML = `<div class="metric-grid view-mode-grid">${metricsHtml}</div>`;
-  } else {
-    // Handle categorized format
-    container.innerHTML = metrics
       .filter(category => category.category !== 'Timeframe')
       .map(category => `
         <div class="metrics-category" data-category="${category.category}">
@@ -719,6 +708,20 @@ function displayMetrics(metrics, containerId) {
           </div>
         </div>
       `).join('');
+
+    container.innerHTML = metricsHtml;
+  } else {
+    // Handle legacy flat array format
+    const metricsHtml = metrics
+      .filter(metric => metric.name !== 'Timeframe')
+      .map(metric => `
+        <div class="metric-box">
+          <h4 class="metric-name">${metric.name}</h4>
+          <p class="metric-value">${metric.value}</p>
+        </div>
+      `).join('');
+
+    container.innerHTML = `<div class="metric-grid view-mode-grid">${metricsHtml}</div>`;
   }
 }
 
