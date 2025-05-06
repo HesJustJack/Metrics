@@ -572,6 +572,27 @@ canvas {
   top: 10px;
 }
 
+/* Performance Chart Section */
+.performance-section {
+  margin-top: 30px;
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  padding: 24px;
+  box-shadow: var(--box-shadow);
+}
+
+.performance-section .chart-container {
+  height: 400px;
+  margin-bottom: 20px;
+}
+
+.performance-section .insight-description {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 10px;
+}
+
 /* Analytics Section Styles */
 .analytics-section {
   margin-top: 20px;

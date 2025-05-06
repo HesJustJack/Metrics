@@ -236,104 +236,121 @@ function initPerformanceChart(data) {
   }
 
   const chartContainer = document.getElementById("performance-chart");
-
-  // Clear existing content
-  chartContainer.innerHTML = "";
-
-  // Create canvas for chart
-  const canvas = document.createElement("canvas");
-  canvas.id = "quizScoreChart";
-  chartContainer.appendChild(canvas);
-
-  // Check if we have valid data
-  if (!data.failbase || !data.job || !data.roleplay) {
-    chartContainer.innerHTML =
-      '<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>No data available for the selected timeframe</p></div>';
+  if (!chartContainer) {
+    console.error("Performance chart container not found");
     return;
   }
 
-  // Prepare data for chart
-  const chartData = {
-    labels: ["Failbase Quiz", "Job Quiz", "Roleplay Quiz"],
-    datasets: [
-      {
-        label: "Average Score",
-        data: [
-          parseFloat(getAverageScoreFromData(data.failbase)),
-          parseFloat(getAverageScoreFromData(data.job)),
-          parseFloat(getAverageScoreFromData(data.roleplay)),
-        ],
-        backgroundColor: [
-          "rgba(3, 169, 244, 0.6)",
-          "rgba(255, 87, 34, 0.6)",
-          "rgba(76, 175, 80, 0.6)",
-        ],
-        borderColor: [
-          "rgba(3, 169, 244, 1)",
-          "rgba(255, 87, 34, 1)",
-          "rgba(76, 175, 80, 1)",
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
+  try {
+    // Clear existing content
+    chartContainer.innerHTML = "";
 
-  // Create chart
-  const ctx = canvas.getContext("2d");
-  new Chart(ctx, {
-    type: "bar",
-    data: chartData,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 20,
-          ticks: {
-            color: getComputedStyle(document.documentElement).getPropertyValue(
-              "--text-secondary"
-            ),
+    // Create canvas for chart
+    const canvas = document.createElement("canvas");
+    canvas.id = "quizScoreChart";
+    chartContainer.appendChild(canvas);
+
+    // Check if we have valid data
+    if (!data.failbase || !data.job || !data.roleplay) {
+      chartContainer.innerHTML =
+        '<div class="chart-placeholder"><i class="fas fa-chart-line"></i><p>No data available for the selected timeframe</p></div>';
+      return;
+    }
+
+    // Create chart
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      console.error("Failed to get canvas context");
+      return;
+    }
+
+    // Prepare data for chart
+    const chartData = {
+      labels: ["Failbase Quiz", "Job Quiz", "Roleplay Quiz"],
+      datasets: [
+        {
+          label: "Average Score",
+          data: [
+            parseFloat(getAverageScoreFromData(data.failbase)),
+            parseFloat(getAverageScoreFromData(data.job)),
+            parseFloat(getAverageScoreFromData(data.roleplay)),
+          ],
+          backgroundColor: [
+            "rgba(3, 169, 244, 0.6)",
+            "rgba(255, 87, 34, 0.6)",
+            "rgba(76, 175, 80, 0.6)",
+          ],
+          borderColor: [
+            "rgba(3, 169, 244, 1)",
+            "rgba(255, 87, 34, 1)",
+            "rgba(76, 175, 80, 1)",
+          ],
+          borderWidth: 1,
+        },
+      ],
+    };
+
+    // Create chart
+    new Chart(ctx, {
+      type: "bar",
+      data: chartData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 20,
+            ticks: {
+              color: getComputedStyle(document.documentElement).getPropertyValue(
+                "--text-secondary"
+              ),
+            },
+            grid: {
+              color: "rgba(255, 255, 255, 0.1)",
+            },
           },
-          grid: {
-            color: "rgba(255, 255, 255, 0.1)",
+          x: {
+            ticks: {
+              color: getComputedStyle(document.documentElement).getPropertyValue(
+                "--text-secondary"
+              ),
+            },
+            grid: {
+              color: "rgba(255, 255, 255, 0.1)",
+            },
           },
         },
-        x: {
-          ticks: {
-            color: getComputedStyle(document.documentElement).getPropertyValue(
-              "--text-secondary"
-            ),
+        plugins: {
+          legend: {
+            labels: {
+              color: getComputedStyle(document.documentElement).getPropertyValue(
+                "--text-primary"
+              ),
+            },
           },
-          grid: {
-            color: "rgba(255, 255, 255, 0.1)",
-          },
-        },
-      },
-      plugins: {
-        legend: {
-          labels: {
+          title: {
+            display: true,
+            text: getChartTitle(currentTimeframe),
             color: getComputedStyle(document.documentElement).getPropertyValue(
               "--text-primary"
             ),
-          },
-        },
-        title: {
-          display: true,
-          text: getChartTitle(currentTimeframe),
-          color: getComputedStyle(document.documentElement).getPropertyValue(
-            "--text-primary"
-          ),
-          font: {
-            size: 16,
+            font: {
+              size: 16,
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  // Update insight description
-  updateInsightDescription(data);
+    // Update insight description
+    updateInsightDescription(data);
+  } catch (error) {
+    console.error("Error creating performance chart:", error);
+    if (chartContainer) {
+      chartContainer.innerHTML = '<div class="chart-placeholder"><i class="fas fa-exclamation-circle"></i><p>Error creating chart</p></div>';
+    }
+  }
 }
 
 // Function to get a more descriptive chart title
