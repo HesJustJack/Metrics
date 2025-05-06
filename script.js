@@ -647,10 +647,7 @@ function createSettingsPage() {
         <p class="section-description">Customize your dashboard preferences and settings.</p>
       </div>
       
-      <div id="settings-success-message" class="success-message">
-        <i class="fas fa-check-circle"></i>
-        <span>Settings saved successfully!</span>
-      </div>
+      <div id="settings-success-placeholder"></div>
       
       <div class="settings-container">
         <form id="settings-form" class="settings-form">
