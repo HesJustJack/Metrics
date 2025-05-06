@@ -154,6 +154,65 @@
           </div>
         </div>
       </section>
+
+      <!-- History Section -->
+      <section id="history-section" class="history-section" style="display: none;">
+        <div class="section-header">
+          <h2><i class="fas fa-history"></i> Quiz History</h2>
+          <p class="section-description">View and analyze quiz performance history</p>
+        </div>
+
+        <div class="history-controls">
+          <div class="filter-group">
+            <div class="date-range">
+              <input type="date" id="history-start-date" aria-label="Start date">
+              <span>to</span>
+              <input type="date" id="history-end-date" aria-label="End date">
+            </div>
+            <select id="history-quiz-type" aria-label="Quiz type filter">
+              <option value="all">All Quizzes</option>
+              <option value="failbase">Failbase Quiz</option>
+              <option value="job">Job Quiz</option>
+              <option value="roleplay">Roleplay Quiz</option>
+            </select>
+          </div>
+          <div class="action-group">
+            <button class="primary-btn" id="apply-history-filters">
+              <i class="fas fa-filter"></i> Apply Filters
+            </button>
+            <button class="secondary-btn" id="export-history">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+        </div>
+
+        <div class="history-table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Date <i class="fas fa-sort"></i></th>
+                <th>Quiz Type <i class="fas fa-sort"></i></th>
+                <th>Attempts <i class="fas fa-sort"></i></th>
+                <th>Pass Rate <i class="fas fa-sort"></i></th>
+                <th>Avg. Score <i class="fas fa-sort"></i></th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- Data will be populated via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="history-pagination">
+          <button class="pagination-btn" data-action="prev" disabled>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="page-numbers"></div>
+          <button class="pagination-btn" data-action="next">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -224,42 +283,6 @@
       </div>
     </div>
   </section>
-
-  <!-- History Detail Modal -->
-  <div id="history-detail-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Quiz Performance Details</h2>
-        <button class="close-modal"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="modal-body">
-        <div class="detail-summary">
-          <div class="detail-item">
-            <span class="label">Date:</span>
-            <span class="value" id="detail-date"></span>
-          </div>
-          <div class="detail-item">
-            <span class="label">Quiz Type:</span>
-            <span class="value" id="detail-quiz-type"></span>
-          </div>
-          <div class="detail-item">
-            <span class="label">Total Attempts:</span>
-            <span class="value" id="detail-attempts"></span>
-          </div>
-        </div>
-        <div class="detail-charts">
-          <div class="chart-wrapper">
-            <h3>Score Distribution</h3>
-            <canvas id="score-distribution-chart"></canvas>
-          </div>
-          <div class="chart-wrapper">
-            <h3>Time Trend</h3>
-            <canvas id="time-trend-chart"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Footer -->
   <footer class="main-footer" role="contentinfo">

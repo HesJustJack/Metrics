@@ -651,29 +651,39 @@ function initTimeframeSelector() {
 // Initialize navigation
 function initNavigation() {
   const navLinks = document.querySelectorAll('.main-nav a');
+  const dashboardSection = document.querySelector('.dashboard-overview');
+  const historySection = document.getElementById('history-section');
+  const settingsPage = document.getElementById('settings-page');
 
   navLinks.forEach(link => {
-    link.addEventListener('click', function (e) {
+    link.addEventListener('click', function(e) {
       e.preventDefault();
-
-      // Get the link target
       const target = this.getAttribute('href');
 
-      // Remove 'active' class from all links
-      navLinks.forEach(navLink => navLink.classList.remove('active'));
-
-      // Add 'active' class to clicked link
+      // Remove active class from all links
+      navLinks.forEach(l => l.classList.remove('active'));
+      // Add active class to clicked link
       this.classList.add('active');
 
-      // Handle navigation based on target
-      if (target === '#settings') {
-        showSettingsPage();
-      } else if (target === '#history') {
-        // In the future, we'll show the history page here
-        hideSettingsPage();
-      } else {
-        // For Dashboard or default, show dashboard
-        hideSettingsPage();
+      // Hide all sections
+      dashboardSection.style.display = 'none';
+      historySection.style.display = 'none';
+      if (settingsPage) settingsPage.style.display = 'none';
+
+      // Show target section
+      switch(target) {
+        case '#history':
+          historySection.style.display = 'block';
+          if (!historySection.initialized) {
+            initializeHistory();
+            historySection.initialized = true;
+          }
+          break;
+        case '#settings':
+          if (settingsPage) settingsPage.style.display = 'block';
+          break;
+        default:
+          dashboardSection.style.display = 'block';
       }
     });
   });
@@ -1349,54 +1359,65 @@ function updateMetricGridView() {
   }
 }
 
-// History page functionality
+// History functionality
 function initializeHistory() {
-  // Set default dates (last 30 days)
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 30);
+  const historyStartDate = document.getElementById('history-start-date');
+  const historyEndDate = document.getElementById('history-end-date');
+  const historyQuizType = document.getElementById('history-quiz-type');
+  const applyFiltersBtn = document.getElementById('apply-history-filters');
+  const exportBtn = document.getElementById('export-history');
 
-  document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
-  document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
+  // Set default date range (last 30 days)
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+  
+  historyStartDate.value = start.toISOString().split('T')[0];
+  historyEndDate.value = end.toISOString().split('T')[0];
 
-  // Initialize event listeners
-  document.querySelector('.apply-filters-btn').addEventListener('click', fetchHistoryData);
-  document.querySelector('.export-btn').addEventListener('click', exportHistoryData);
+  // Event listeners
+  applyFiltersBtn.addEventListener('click', loadHistoryData);
+  exportBtn.addEventListener('click', exportHistoryData);
   
-  // Initialize sorting
-  initializeTableSorting();
+  // Initialize sort functionality
+  initializeHistorySort();
   
-  // Initial data fetch
-  fetchHistoryData();
+  // Load initial data
+  loadHistoryData();
 }
 
-function fetchHistoryData() {
+function loadHistoryData() {
   showLoading();
-  
-  const startDate = document.getElementById('start-date').value;
-  const endDate = document.getElementById('end-date').value;
-  const quizType = document.getElementById('quiz-type').value;
-  
-  // Construct URL with parameters
-  const url = `${API_URL}?action=history&start=${startDate}&end=${endDate}&type=${quizType}`;
-  
-  fetch(url)
+  const startDate = document.getElementById('history-start-date').value;
+  const endDate = document.getElementById('history-end-date').value;
+  const quizType = document.getElementById('history-quiz-type').value;
+
+  fetch(`${API_URL}?action=history&start=${startDate}&end=${endDate}&type=${quizType}`)
     .then(response => response.json())
     .then(data => {
-      populateHistoryTable(data);
+      displayHistoryData(data);
       hideLoading();
     })
     .catch(error => {
-      console.error('Error fetching history:', error);
+      console.error('Error loading history:', error);
+      showErrorMessage('Failed to load history data');
       hideLoading();
-      showErrorMessage('Failed to load history data. Please try again.');
     });
 }
 
-function populateHistoryTable(data) {
-  const tbody = document.getElementById('history-data');
+function displayHistoryData(data) {
+  const tbody = document.getElementById('history-table-body');
   tbody.innerHTML = '';
-  
+
+  if (!data || data.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="no-data">No history data available</td>
+      </tr>
+    `;
+    return;
+  }
+
   data.forEach(record => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -1405,89 +1426,18 @@ function populateHistoryTable(data) {
       <td>${record.attempts}</td>
       <td>${record.passRate}%</td>
       <td>${record.avgScore}</td>
-      <td>
-        <div class="actions">
-          <button class="action-btn" onclick="showHistoryDetail('${record.id}')" title="View Details">
-            <i class="fas fa-chart-bar"></i>
-          </button>
-          <button class="action-btn" onclick="downloadReport('${record.id}')" title="Download Report">
-            <i class="fas fa-download"></i>
-          </button>
-        </div>
-      </td>
     `;
     tbody.appendChild(tr);
   });
-  
-  updatePagination(data.length);
-}
 
-function showHistoryDetail(recordId) {
-  const modal = document.getElementById('history-detail-modal');
-  modal.style.display = 'flex';
-  
-  // Fetch and display detailed data
-  fetch(`${API_URL}?action=detail&id=${recordId}`)
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById('detail-date').textContent = formatDate(data.date);
-      document.getElementById('detail-quiz-type').textContent = data.quizType;
-      document.getElementById('detail-attempts').textContent = data.attempts;
-      
-      // Initialize charts
-      initializeDetailCharts(data);
-    })
-    .catch(error => {
-      console.error('Error fetching detail:', error);
-      showErrorMessage('Failed to load detail data.');
-    });
-}
-
-function initializeDetailCharts(data) {
-  // Score Distribution Chart
-  new Chart(document.getElementById('score-distribution-chart'), {
-    type: 'bar',
-    data: {
-      labels: data.scoreRanges,
-      datasets: [{
-        label: 'Number of Attempts',
-        data: data.scoreDistribution,
-        backgroundColor: 'rgba(3, 169, 244, 0.6)',
-        borderColor: 'rgba(3, 169, 244, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-  
-  // Time Trend Chart
-  new Chart(document.getElementById('time-trend-chart'), {
-    type: 'line',
-    data: {
-      labels: data.timeLabels,
-      datasets: [{
-        label: 'Average Score',
-        data: data.timeScores,
-        borderColor: 'rgba(3, 169, 244, 1)',
-        tension: 0.4,
-        fill: false
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
+  updateHistoryPagination(data.length);
 }
 
 function exportHistoryData() {
-  const startDate = document.getElementById('start-date').value;
-  const endDate = document.getElementById('end-date').value;
-  const quizType = document.getElementById('quiz-type').value;
-  
+  const startDate = document.getElementById('history-start-date').value;
+  const endDate = document.getElementById('history-end-date').value;
+  const quizType = document.getElementById('history-quiz-type').value;
+
   window.location.href = `${API_URL}?action=export&start=${startDate}&end=${endDate}&type=${quizType}`;
 }
 
@@ -1497,6 +1447,20 @@ function formatDate(dateString) {
     month: 'short',
     day: 'numeric'
   });
+}
+
+function updateHistoryPagination(totalRecords) {
+  const pageNumbers = document.querySelector('.page-numbers');
+  pageNumbers.innerHTML = '';
+  
+  const totalPages = Math.ceil(totalRecords / 10);
+  for (let i = 1; i <= totalPages; i++) {
+    const pageBtn = document.createElement('div');
+    pageBtn.className = `page-number${i === 1 ? ' active' : ''}`;
+    pageBtn.textContent = i;
+    pageBtn.addEventListener('click', () => goToHistoryPage(i));
+    pageNumbers.appendChild(pageBtn);
+  }
 }
 
 // Add history initialization to the DOMContentLoaded event
