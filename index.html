@@ -29,6 +29,12 @@
   </head>
 
   <body>
+    <!-- Add loading overlay right after body opening -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <p>Loading data...</p>
+    </div>
+
     <!-- Header with Navigation -->
     <header class="main-header" role="banner">
       <div class="container header-container">
@@ -224,7 +230,7 @@
             <!-- Trend Analysis Card -->
             <div class="analytics-card trend-analysis">
               <h3><i class="fas fa-chart-line"></i> Performance Trends</h3>
-              <div class="trend-chart-container">
+              <div id="trendChartContainer" class="trend-chart-container">
                 <canvas id="trendChart"></canvas>
               </div>
             </div>
@@ -232,7 +238,7 @@
             <!-- Pattern Recognition Card -->
             <div class="analytics-card pattern-recognition">
               <h3><i class="fas fa-brain"></i> Learning Patterns</h3>
-              <div class="patterns-container">
+              <div id="patternsContainer" class="patterns-container">
                 <div id="patternsList"></div>
               </div>
             </div>
@@ -240,10 +246,10 @@
             <!-- Progress Tracking Card -->
             <div class="analytics-card progress-tracking">
               <h3><i class="fas fa-tasks"></i> Progress Tracking</h3>
-              <div class="progress-chart-container">
+              <div id="progressChartContainer" class="progress-chart-container">
                 <canvas id="progressChart"></canvas>
               </div>
-              <div class="achievements-container">
+              <div id="achievementsContainer" class="achievements-container">
                 <h4>Achievements</h4>
                 <div id="achievementsList"></div>
               </div>
@@ -252,7 +258,7 @@
             <!-- Predictive Insights Card -->
             <div class="analytics-card predictive-insights">
               <h3><i class="fas fa-lightbulb"></i> Predictive Insights</h3>
-              <div class="insights-container">
+              <div id="insightsContainer" class="insights-container">
                 <div id="predictiveInsights"></div>
               </div>
             </div>

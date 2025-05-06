@@ -1,7 +1,7 @@
-// Cache DOM elements used frequently
+// Cache DOM elements frequently used
 const DOM = {
   countdownSpan: document.querySelector(".refresh-btn .countdown"),
-  loadingOverlay: document.getElementById("loading-overlay"),
+  loadingOverlay: document.getElementById("loadingOverlay"), // Updated ID
   metricSearch: document.getElementById("metric-search"),
   timeRange: document.getElementById("timeRange"),
   performanceChart: document.getElementById("performance-chart"),
@@ -9,7 +9,8 @@ const DOM = {
   progressChart: document.getElementById("progressChart"),
   patternsList: document.getElementById("patternsList"),
   predictiveInsights: document.getElementById("predictiveInsights"),
-  achievementsList: document.getElementById("achievementsList")
+  achievementsList: document.getElementById("achievementsList"),
+  errorContainer: document.getElementById("error-container")
 };
 
 // Global state variables
@@ -21,19 +22,20 @@ let activeTab = 'failbase'; // Add activeTab state
 document.addEventListener('DOMContentLoaded', () => {
   // Check if required elements exist
   const requiredElements = [
-    'loadingOverlay',
-    'performanceChart',
-    'trendChart',
-    'progressChart',
-    'patternsList',
-    'predictiveInsights',
-    'achievementsList'
+    { id: 'loadingOverlay', name: 'Loading Overlay' },
+    { id: 'error-container', name: 'Error Container' },
+    { id: 'performance-chart', name: 'Performance Chart' },
+    { id: 'trendChart', name: 'Trend Chart' },
+    { id: 'progressChart', name: 'Progress Chart' },
+    { id: 'patternsList', name: 'Patterns List' },
+    { id: 'predictiveInsights', name: 'Predictive Insights' },
+    { id: 'achievementsList', name: 'Achievements List' }
   ];
 
-  const missingElements = requiredElements.filter(id => !document.getElementById(id));
+  const missingElements = requiredElements.filter(el => !document.getElementById(el.id));
   if (missingElements.length > 0) {
-    console.error('Missing required elements:', missingElements);
-    showError('Some dashboard elements are missing. Please check the console for details.');
+    console.error('Missing required elements:', missingElements.map(el => el.name));
+    showError(`Missing required elements: ${missingElements.map(el => el.name).join(', ')}`);
   }
 
   // Initialize global elements
