@@ -578,6 +578,69 @@ canvas {
   top: 10px;
 }
 
+/* Analytics Section Styles */
+.analytics-section {
+  margin-top: 20px;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.analytics-card {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  padding: 24px;
+  box-shadow: var(--box-shadow);
+}
+
+.analytics-card h3 {
+  color: var(--primary-color);
+  font-size: 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trend-chart-container,
+.comparison-chart-container {
+  height: 300px;
+  margin-bottom: 16px;
+}
+
+.patterns-container,
+.insights-container {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.pattern-item,
+.insight-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+  border-left: 4px solid var(--primary-color);
+}
+
+.pattern-item:last-child,
+.insight-item:last-child {
+  margin-bottom: 0;
+}
+
+@media screen and (max-width: 992px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Footer */
 .main-footer {
   background-color: var(--bg-secondary);

@@ -29,7 +29,7 @@
       <nav class="main-nav">
         <ul>
           <li><a href="#" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-          <li><a href="#history"><i class="fas fa-history"></i> History</a></li>
+          <li><a href="#analytics"><i class="fas fa-analytics"></i> Analytics</a></li>
           <li><a href="#settings"><i class="fas fa-cog"></i> Settings</a></li>
         </ul>
       </nav>
@@ -155,134 +155,49 @@
         </div>
       </section>
 
-      <!-- History Section -->
-      <section id="history-section" class="history-section" style="display: none;">
+      <!-- Replace History Section with Analytics Section -->
+      <section id="analytics-section" class="analytics-section" style="display: none;">
         <div class="section-header">
-          <h2><i class="fas fa-history"></i> Quiz History</h2>
-          <p class="section-description">View and analyze quiz performance history</p>
+          <h2><i class="fas fa-analytics"></i> Deep Analytics</h2>
+          <p class="section-description">Advanced insights and trend analysis</p>
         </div>
 
-        <div class="history-controls">
-          <div class="filter-group">
-            <div class="date-range">
-              <input type="date" id="history-start-date" aria-label="Start date">
-              <span>to</span>
-              <input type="date" id="history-end-date" aria-label="End date">
+        <div class="analytics-grid">
+          <!-- Trend Analysis Card -->
+          <div class="analytics-card trend-analysis">
+            <h3><i class="fas fa-chart-line"></i> Performance Trends</h3>
+            <div class="trend-chart-container">
+              <canvas id="trendChart"></canvas>
             </div>
-            <select id="history-quiz-type" aria-label="Quiz type filter">
-              <option value="all">All Quizzes</option>
-              <option value="failbase">Failbase Quiz</option>
-              <option value="job">Job Quiz</option>
-              <option value="roleplay">Roleplay Quiz</option>
-            </select>
           </div>
-          <div class="action-group">
-            <button class="primary-btn" id="apply-history-filters">
-              <i class="fas fa-filter"></i> Apply Filters
-            </button>
-            <button class="secondary-btn" id="export-history">
-              <i class="fas fa-download"></i> Export
-            </button>
+
+          <!-- Pattern Recognition Card -->
+          <div class="analytics-card pattern-recognition">
+            <h3><i class="fas fa-brain"></i> Learning Patterns</h3>
+            <div class="patterns-container">
+              <div id="patternsList"></div>
+            </div>
           </div>
-        </div>
 
-        <div class="history-table-wrapper">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Date <i class="fas fa-sort"></i></th>
-                <th>Quiz Type <i class="fas fa-sort"></i></th>
-                <th>Attempts <i class="fas fa-sort"></i></th>
-                <th>Pass Rate <i class="fas fa-sort"></i></th>
-                <th>Avg. Score <i class="fas fa-sort"></i></th>
-              </tr>
-            </thead>
-            <tbody id="history-table-body">
-              <!-- Data will be populated via JavaScript -->
-            </tbody>
-          </table>
-        </div>
+          <!-- Comparative Analysis Card -->
+          <div class="analytics-card comparative-analysis">
+            <h3><i class="fas fa-balance-scale"></i> Quiz Comparison</h3>
+            <div class="comparison-chart-container">
+              <canvas id="comparisonChart"></canvas>
+            </div>
+          </div>
 
-        <div class="history-pagination">
-          <button class="pagination-btn" data-action="prev" disabled>
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <div class="page-numbers"></div>
-          <button class="pagination-btn" data-action="next">
-            <i class="fas fa-chevron-right"></i>
-          </button>
+          <!-- Predictive Insights Card -->
+          <div class="analytics-card predictive-insights">
+            <h3><i class="fas fa-lightbulb"></i> Predictive Insights</h3>
+            <div class="insights-container">
+              <div id="predictiveInsights"></div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
   </main>
-
-  <!-- History Page -->
-  <section id="history-page" class="main-content-section">
-    <div class="container">
-      <div class="section-header">
-        <h2><i class="fas fa-history"></i> Quiz History</h2>
-        <p class="section-description">View and analyze historical quiz performance data.</p>
-      </div>
-
-      <div class="history-controls">
-        <div class="filter-group">
-          <div class="date-range-picker">
-            <label for="start-date">From:</label>
-            <input type="date" id="start-date">
-            <label for="end-date">To:</label>
-            <input type="date" id="end-date">
-          </div>
-          <div class="quiz-type-filter">
-            <label for="quiz-type">Quiz Type:</label>
-            <select id="quiz-type">
-              <option value="all">All Quizzes</option>
-              <option value="failbase">Failbase</option>
-              <option value="job">Job</option>
-              <option value="roleplay">Roleplay</option>
-            </select>
-          </div>
-        </div>
-        <div class="action-group">
-          <button class="apply-filters-btn primary-btn">
-            <i class="fas fa-filter"></i> Apply Filters
-          </button>
-          <button class="export-btn secondary-btn">
-            <i class="fas fa-file-export"></i> Export Data
-          </button>
-        </div>
-      </div>
-
-      <div class="history-table-container">
-        <table class="history-table">
-          <thead>
-            <tr>
-              <th>Date <i class="fas fa-sort"></i></th>
-              <th>Quiz Type <i class="fas fa-sort"></i></th>
-              <th>Attempts <i class="fas fa-sort"></i></th>
-              <th>Pass Rate <i class="fas fa-sort"></i></th>
-              <th>Avg. Score <i class="fas fa-sort"></i></th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="history-data">
-            <!-- Data will be populated via JavaScript -->
-          </tbody>
-        </table>
-      </div>
-
-      <div class="pagination">
-        <button class="pagination-btn" data-page="prev">
-          <i class="fas fa-chevron-left"></i>
-        </button>
-        <div class="page-numbers">
-          <!-- Page numbers will be populated via JavaScript -->
-        </div>
-        <button class="pagination-btn" data-page="next">
-          <i class="fas fa-chevron-right"></i>
-        </button>
-      </div>
-    </div>
-  </section>
 
   <!-- Footer -->
   <footer class="main-footer" role="contentinfo">

@@ -574,6 +574,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Start the refresh countdown timer
     startRefreshTimer();
+
+    // Initialize analytics
+    initializeAnalytics();
   } catch (error) {
     console.error('Initialization error:', error);
     showErrorMessage('Failed to initialize dashboard. Please refresh the page.');
@@ -652,7 +655,7 @@ function initTimeframeSelector() {
 function initNavigation() {
   const navLinks = document.querySelectorAll('.main-nav a');
   const dashboardSection = document.querySelector('.dashboard-overview');
-  const historySection = document.getElementById('history-section');
+  const analyticsSection = document.getElementById('analytics-section');
   const settingsPage = document.getElementById('settings-page');
 
   navLinks.forEach(link => {
@@ -667,17 +670,14 @@ function initNavigation() {
 
       // Hide all sections
       dashboardSection.style.display = 'none';
-      historySection.style.display = 'none';
+      analyticsSection.style.display = 'none';
       if (settingsPage) settingsPage.style.display = 'none';
 
       // Show target section
       switch(target) {
-        case '#history':
-          historySection.style.display = 'block';
-          if (!historySection.initialized) {
-            initializeHistory();
-            historySection.initialized = true;
-          }
+        case '#analytics':
+          analyticsSection.style.display = 'block';
+          updateAnalytics();
           break;
         case '#settings':
           if (settingsPage) settingsPage.style.display = 'block';
@@ -728,12 +728,6 @@ function hideSettingsPage() {
   const settingsPage = document.getElementById('settings-page');
   if (settingsPage) {
     settingsPage.style.display = 'none';
-  }
-
-  // Hide history page if it exists
-  const historyPage = document.getElementById('history-page');
-  if (historyPage) {
-    historyPage.style.display = 'none';
   }
 }
 
@@ -1372,152 +1366,91 @@ function updateMetricGridView() {
   }
 }
 
-// History functionality
-function initializeHistory() {
-  const historyStartDate = document.getElementById('history-start-date');
-  const historyEndDate = document.getElementById('history-end-date');
-  const historyQuizType = document.getElementById('history-quiz-type');
-  const applyFiltersBtn = document.getElementById('apply-history-filters');
-  const exportBtn = document.getElementById('export-history');
+// Analytics functionality
+function initializeAnalytics() {
+  const analyticsLink = document.querySelector('a[href="#analytics"]');
+  const dashboardSection = document.querySelector('.dashboard-overview');
+  const analyticsSection = document.getElementById('analytics-section');
 
-  // Set default date range (last 30 days)
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 30);
-  
-  historyStartDate.value = start.toISOString().split('T')[0];
-  historyEndDate.value = end.toISOString().split('T')[0];
-
-  // Event listeners
-  applyFiltersBtn.addEventListener('click', loadHistoryData);
-  exportBtn.addEventListener('click', exportHistoryData);
-  
-  // Initialize sort functionality
-  initializeHistorySort();
-  
-  // Load initial data
-  loadHistoryData();
-}
-
-function loadHistoryData() {
-  showLoading();
-  const startDate = document.getElementById('history-start-date').value;
-  const endDate = document.getElementById('history-end-date').value;
-  const quizType = document.getElementById('history-quiz-type').value;
-
-  if (!startDate || !endDate) {
-    hideLoading();
-    showErrorMessage('Please select both start and end dates');
-    return;
-  }
-
-  fetch(`${API_URL}?action=history&start=${startDate}&end=${endDate}&type=${quizType}`)
-    .then(response => response.json())
-    .then(records => {
-      if (!Array.isArray(records) || records.length === 0) {
-        throw new Error('No history data available for the selected period');
-      }
-
-      displayHistoryData(records);
-      hideLoading();
-    })
-    .catch(error => {
-      console.error('Error loading history:', error);
-      hideLoading();
-      
-      const tbody = document.getElementById('history-table-body');
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" class="no-data">
-            ${error.message || 'Failed to load history data'}
-          </td>
-        </tr>
-      `;
-    });
-}
-
-function displayHistoryData(records) {
-  const tbody = document.getElementById('history-table-body');
-  if (!tbody) return;
-
-  tbody.innerHTML = '';
-
-  // Ensure records is an array and has data
-  if (!Array.isArray(records) || records.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="5" class="no-data">No history data available</td>
-      </tr>
-    `;
-    return;
-  }
-
-  // Process each record
-  records.forEach(record => {
-    try {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${formatDate(record.date || new Date())}</td>
-        <td>${record.quizType || 'Unknown'}</td>
-        <td>${record.attempts || '0'}</td>
-        <td>${record.passRate ? record.passRate + '%' : '0%'}</td>
-        <td>${record.avgScore || '0'}</td>
-      `;
-      tbody.appendChild(tr);
-    } catch (error) {
-      console.error('Error processing record:', error, record);
-    }
+  analyticsLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    dashboardSection.style.display = 'none';
+    analyticsSection.style.display = 'block';
+    updateAnalytics();
   });
 
-  // Update pagination if we have valid data
-  updateHistoryPagination(records.length);
+  // Return to dashboard handler
+  document.querySelector('a[href="#"]').addEventListener('click', function(e) {
+    e.preventDefault();
+    analyticsSection.style.display = 'none';
+    dashboardSection.style.display = 'block';
+  });
 }
 
-function exportHistoryData() {
-  const startDate = document.getElementById('history-start-date').value;
-  const endDate = document.getElementById('history-end-date').value;
-  const quizType = document.getElementById('history-quiz-type').value;
-
-  window.location.href = `${API_URL}?action=export&start=${startDate}&end=${endDate}&type=${quizType}`;
+function updateAnalytics() {
+  updateTrendChart();
+  updatePatternAnalysis();
+  updateComparativeAnalysis();
+  updatePredictiveInsights();
 }
 
-function formatDate(dateString) {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return 'Invalid Date';
+function updateTrendChart() {
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: generateTimeLabels(),
+      datasets: generateTrendDatasets()
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Performance Trends Over Time',
+          color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary')
+        }
+      }
     }
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid Date';
-  }
+  });
 }
 
-function updateHistoryPagination(totalRecords) {
-  const pageNumbers = document.querySelector('.page-numbers');
-  pageNumbers.innerHTML = '';
-  
-  const totalPages = Math.ceil(totalRecords / 10);
-  for (let i = 1; i <= totalPages; i++) {
-    const pageBtn = document.createElement('div');
-    pageBtn.className = `page-number${i === 1 ? ' active' : ''}`;
-    pageBtn.textContent = i;
-    pageBtn.addEventListener('click', () => goToHistoryPage(i));
-    pageNumbers.appendChild(pageBtn);
-  }
+function updatePatternAnalysis() {
+  const patterns = analyzePatterns(allMetrics);
+  const patternsList = document.getElementById('patternsList');
+  patternsList.innerHTML = patterns.map(pattern => `
+    <div class="pattern-item">
+      <h4>${pattern.title}</h4>
+      <p>${pattern.description}</p>
+      <div class="pattern-confidence">Confidence: ${pattern.confidence}%</div>
+    </div>
+  `).join('');
 }
 
-// Add history initialization to the DOMContentLoaded event
-document.addEventListener('DOMContentLoaded', function() {
-  // ...existing initialization code...
-  
-  // Initialize history page if it exists
-  if (document.getElementById('history-page')) {
-    initializeHistory();
-  }
-});
+function updateComparativeAnalysis() {
+  const ctx = document.getElementById('comparisonChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Completion Rate', 'Pass Rate', 'Avg Score', 'Attempts', 'Time Spent'],
+      datasets: generateComparisonDatasets()
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function updatePredictiveInsights() {
+  const insights = generatePredictiveInsights(allMetrics);
+  const insightsContainer = document.getElementById('predictiveInsights');
+  insightsContainer.innerHTML = insights.map(insight => `
+    <div class="insight-item ${insight.type}">
+      <h4>${insight.title}</h4>
+      <p>${insight.description}</p>
+      <div class="insight-probability">Probability: ${insight.probability}%</div>
+    </div>
+  `).join('');
+}
