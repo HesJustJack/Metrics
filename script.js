@@ -242,27 +242,29 @@ function updateSummaryCards(tabId) {
   const categoryMetrics = metrics.find(category => 
     category.category === 'Overview')?.metrics || [];
 
+  const participationMetrics = metrics.find(category => 
+    category.category === 'Participation')?.metrics || [];
+
   // Get current period values
   const currentPeriod = {
     total: parseInt(categoryMetrics.find(m => m.name === 'Total Entries')?.value) || 0,
-    completion: parseFloat(metrics.find(category => 
-      category.category === 'Participation')?.metrics.find(m => 
-      m.name === 'General Participation Rate')?.value) || 0,
+    completion: parseFloat(participationMetrics.find(m => 
+      m.name === 'General Participation Rate')?.value.replace('%', '')) || 0,
     score: parseFloat(metrics.find(category => 
       category.category === 'Performance')?.metrics.find(m => 
       m.name === 'Average First Test Result')?.value) || 0
   };
 
-  // Calculate trends (using previous period data from your backend)
+  // Calculate trends
   const trends = {
     total: { isPositive: true, value: '0%' },
     completion: { isPositive: true, value: '0%' },
     score: { isPositive: true, value: '0%' }
   };
 
-  // Update cards with new values and trends
+  // Update cards
   updateMetric('total-attempts', currentPeriod.total.toString(), trends.total);
-  updateMetric('completion-rate', `${currentPeriod.completion}%`, trends.completion);
+  updateMetric('completion-rate', `${currentPeriod.completion.toFixed(1)}%`, trends.completion);
   updateMetric('avg-score', currentPeriod.score.toString(), trends.score);
 }
 
@@ -534,6 +536,28 @@ function updateProgressTracking() {
   }
 }
 
+function calculateProgress() {
+  if (!allMetrics || Object.keys(allMetrics).length === 0) return {};
+  
+  return Object.entries(allMetrics).reduce((acc, [quizType, metrics]) => {
+    const participationMetrics = metrics.find(category => 
+      category.category === 'Participation')?.metrics || [];
+    
+    const generalDoneExpected = participationMetrics.find(m => 
+      m.name === 'General Done/Expected')?.value || '0/0';
+    
+    const [done, total] = generalDoneExpected.split('/').map(Number);
+    
+    acc[quizType] = {
+      completion: total > 0 ? (done / total) * 100 : 0,
+      total: total,
+      done: done
+    };
+    
+    return acc;
+  }, {});
+}
+
 function updateAchievements(progressData) {
   const achievementsList = document.getElementById('achievementsList');
   if (!achievementsList) return;
@@ -541,35 +565,42 @@ function updateAchievements(progressData) {
   const achievements = [];
   
   // Calculate overall completion
-  const totalCompletion = Object.values(progressData).reduce((sum, data) => sum + data.completion, 0) / Object.keys(progressData).length;
+  const quizTypes = Object.keys(progressData);
+  const totalCompletion = quizTypes.reduce((sum, type) => {
+    return sum + (progressData[type].completion || 0);
+  }, 0) / (quizTypes.length || 1);
 
-  // Generate achievements based on progress
+  // Overall achievements
   if (totalCompletion >= 90) {
     achievements.push({
       icon: 'fa-trophy',
-      title: 'Excellence Achievement',
-      description: 'Outstanding completion rate across all quizzes!'
+      title: 'Outstanding Performance',
+      description: `${totalCompletion.toFixed(1)}% average completion across all quizzes!`
     });
   } else if (totalCompletion >= 75) {
     achievements.push({
       icon: 'fa-medal',
-      title: 'High Performer',
-      description: 'Great progress across all quiz types'
+      title: 'High Achiever',
+      description: `${totalCompletion.toFixed(1)}% average completion rate`
     });
   }
 
-  // Add individual quiz achievements
+  // Individual quiz achievements
   Object.entries(progressData).forEach(([quizType, data]) => {
-    if (data.completion >= 80) {
+    const completion = data.completion;
+    const done = data.done;
+    const total = data.total;
+
+    if (completion >= 80) {
       achievements.push({
         icon: 'fa-star',
-        title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Master`,
-        description: `Exceptional completion rate in ${quizType} quiz`
+        title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Expert`,
+        description: `${completion.toFixed(1)}% completion (${done}/${total})`
       });
     }
   });
 
-  // Render achievements
+  // Render achievements or show placeholder
   achievementsList.innerHTML = achievements.length ? achievements.map(achievement => `
     <div class="achievement-item">
       <i class="fas ${achievement.icon}"></i>
@@ -579,20 +610,6 @@ function updateAchievements(progressData) {
       </div>
     </div>
   `).join('') : '<p class="no-data">Complete more quizzes to earn achievements!</p>';
-}
-
-function calculateProgress() {
-  return Object.entries(allMetrics).reduce((acc, [quizType, metrics]) => {
-    const done = metrics.find(m => m.name === 'General Done/Expected')?.value || '0/0';
-    const [completed, total] = done.split('/').map(Number);
-    
-    acc[quizType] = {
-      completion: (completed / total) * 100 || 0,
-      total: total
-    };
-    
-    return acc;
-  }, {});
 }
 
 function updatePredictiveInsights() {
