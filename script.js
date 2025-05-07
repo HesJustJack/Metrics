@@ -18,6 +18,13 @@ let currentTimeframe = 'year';
 let allMetrics = {};
 let activeTab = 'failbase'; // Add activeTab state
 
+// Add learning history cache
+const learningCache = {
+  patterns: {},
+  weights: {},
+  lastUpdate: null
+};
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   // Check if required elements exist
@@ -456,63 +463,190 @@ function updateTrendChart() {
 function analyzePatterns() {
   if (!allMetrics) return [];
   
+  // Load previous patterns if they exist
+  loadLearningPatterns();
+  
   return Object.entries(allMetrics).map(([quizType, metrics]) => {
-    const performanceMetrics = metrics.find(category => 
-      category.category === 'Performance')?.metrics || [];
-    const progressMetrics = metrics.find(category => 
-      category.category === 'Progress')?.metrics || [];
+    const performanceHistory = extractPerformanceHistory(metrics);
+    const learningTrends = analyzeLearningTrends(quizType, performanceHistory);
     
-    // Get all the key metrics
-    const avgScore = parseFloat(performanceMetrics.find(m => 
-      m.name === 'Average First Test Result')?.value) || 0;
-    const perfectScores = parseInt(performanceMetrics.find(m => 
-      m.name === 'Perfect Scores')?.value) || 0;
-    const firstTimePassRate = parseFloat(progressMetrics.find(m => 
-      m.name === 'First-Time Pass Rate')?.value) || 0;
-    const avgImprovement = parseFloat(progressMetrics.find(m => 
-      m.name === 'Average Score Improvement')?.value) || 0;
-    const weeklyTrend = progressMetrics.find(m => 
-      m.name === 'Weekly Trend')?.value || '0%';
+    // Update pattern weights based on prediction accuracy
+    updatePatternWeights(quizType, learningTrends);
     
-    // Analyze learning patterns
-    const patterns = [];
+    // Generate insights based on weighted patterns
+    const patterns = generateWeightedPatterns(quizType, learningTrends);
     
-    // Performance pattern
-    if (avgScore >= 17) {
-      patterns.push('High performance with consistent scores above 17');
-    } else if (avgScore < 14) {
-      patterns.push('Struggling to meet passing threshold');
-    }
-    
-    // Learning curve pattern
-    if (avgImprovement > 3) {
-      patterns.push('Strong improvement from retakes (+3 points average)');
-    } else if (avgImprovement > 0) {
-      patterns.push('Gradual improvement shown in retakes');
-    }
-    
-    // Consistency pattern
-    if (perfectScores > 0 && firstTimePassRate > 80) {
-      patterns.push('Consistent high achiever with perfect scores');
-    } else if (firstTimePassRate > 70) {
-      patterns.push('Generally consistent passing performance');
-    } else if (firstTimePassRate < 50) {
-      patterns.push('Inconsistent performance, may need additional support');
-    }
-    
-    // Trend pattern
-    const trendValue = parseFloat(weeklyTrend);
-    if (trendValue > 10) {
-      patterns.push('Strong upward trend in recent performance');
-    } else if (trendValue < -10) {
-      patterns.push('Declining trend needs attention');
-    }
+    // Save updated patterns
+    saveLearningPatterns(quizType, patterns, learningTrends);
     
     return {
       title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Learning Pattern`,
-      description: patterns.join('. ') || 'Insufficient data to determine patterns'
+      description: patterns.join('. '),
+      confidence: calculatePatternConfidence(learningTrends)
     };
   });
+}
+
+function analyzeLearningTrends(quizType, history) {
+  const previousPatterns = learningCache.patterns[quizType] || {};
+  const weights = learningCache.weights[quizType] || initializeWeights();
+  
+  // Calculate score progression
+  const scoreProgression = calculateScoreProgression(history.scores);
+  
+  // Analyze learning velocity
+  const learningVelocity = calculateLearningVelocity(history.scores);
+  
+  // Detect learning plateaus
+  const plateaus = detectPlateaus(history.scores);
+  
+  // Identify breakthrough points
+  const breakthroughs = findBreakthroughs(history.scores);
+  
+  // Compare with previous patterns
+  const patternEvolution = compareWithPreviousPatterns(
+    previousPatterns,
+    { scoreProgression, learningVelocity, plateaus, breakthroughs }
+  );
+  
+  return {
+    currentTrends: {
+      scoreProgression,
+      learningVelocity,
+      plateaus,
+      breakthroughs
+    },
+    evolution: patternEvolution,
+    weights
+  };
+}
+
+function calculateScoreProgression(scores) {
+  if (scores.length < 2) return { trend: 'insufficient_data', rate: 0 };
+  
+  const changes = scores.slice(1).map((score, i) => score - scores[i]);
+  const avgChange = changes.reduce((sum, change) => sum + change, 0) / changes.length;
+  
+  return {
+    trend: avgChange > 0.5 ? 'improving' : avgChange < -0.5 ? 'declining' : 'stable',
+    rate: avgChange,
+    consistency: calculateConsistency(changes)
+  };
+}
+
+function calculateLearningVelocity(scores) {
+  if (scores.length < 3) return { velocity: 0, acceleration: 0 };
+  
+  const velocities = scores.slice(1).map((score, i) => score - scores[i]);
+  const acceleration = velocities.slice(1).map((v, i) => v - velocities[i]);
+  
+  return {
+    velocity: average(velocities),
+    acceleration: average(acceleration),
+    pattern: identifyVelocityPattern(velocities)
+  };
+}
+
+function detectPlateaus(scores) {
+  const plateaus = [];
+  let currentPlateau = { start: 0, length: 1, score: scores[0] };
+  
+  for (let i = 1; i < scores.length; i++) {
+    if (Math.abs(scores[i] - currentPlateau.score) < 0.5) {
+      currentPlateau.length++;
+    } else {
+      if (currentPlateau.length > 2) {
+        plateaus.push({ ...currentPlateau });
+      }
+      currentPlateau = { start: i, length: 1, score: scores[i] };
+    }
+  }
+  
+  return plateaus;
+}
+
+function findBreakthroughs(scores) {
+  const breakthroughs = [];
+  const threshold = 2; // Minimum improvement to be considered a breakthrough
+  
+  for (let i = 1; i < scores.length; i++) {
+    const improvement = scores[i] - scores[i-1];
+    if (improvement >= threshold) {
+      breakthroughs.push({
+        index: i,
+        improvement,
+        score: scores[i],
+        previousScore: scores[i-1]
+      });
+    }
+  }
+  
+  return breakthroughs;
+}
+
+function updatePatternWeights(quizType, learningTrends) {
+  const weights = learningCache.weights[quizType] || initializeWeights();
+  const accuracy = calculatePredictionAccuracy(quizType, learningTrends);
+  
+  // Adjust weights based on prediction accuracy
+  Object.keys(weights).forEach(factor => {
+    const factorAccuracy = accuracy[factor] || 0.5;
+    weights[factor] = weights[factor] * 0.8 + factorAccuracy * 0.2;
+  });
+  
+  learningCache.weights[quizType] = weights;
+}
+
+function generateWeightedPatterns(quizType, learningTrends) {
+  const patterns = [];
+  const { currentTrends, weights } = learningTrends;
+  
+  // Generate patterns based on weighted factors
+  if (currentTrends.learningVelocity.velocity * weights.velocity > 0.3) {
+    patterns.push(
+      currentTrends.learningVelocity.velocity > 0 
+        ? 'Showing consistent improvement velocity'
+        : 'Learning pace has slowed'
+    );
+  }
+  
+  if (currentTrends.plateaus.length > 0 && weights.plateaus > 0.6) {
+    const lastPlateau = currentTrends.plateaus[currentTrends.plateaus.length - 1];
+    patterns.push(`Reached learning plateau at score ${lastPlateau.score}`);
+  }
+  
+  if (currentTrends.breakthroughs.length > 0 && weights.breakthroughs > 0.7) {
+    const recentBreakthrough = currentTrends.breakthroughs[currentTrends.breakthroughs.length - 1];
+    patterns.push(`Achieved breakthrough with ${recentBreakthrough.improvement.toFixed(1)} point improvement`);
+  }
+  
+  return patterns;
+}
+
+// Helper functions for learning pattern storage
+function loadLearningPatterns() {
+  const stored = localStorage.getItem('learningPatterns');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed.lastUpdate && new Date(parsed.lastUpdate) > new Date(Date.now() - 86400000)) {
+        Object.assign(learningCache, parsed);
+      }
+    } catch (e) {
+      console.error('Error loading learning patterns:', e);
+    }
+  }
+}
+
+function saveLearningPatterns(quizType, patterns, trends) {
+  learningCache.patterns[quizType] = patterns;
+  learningCache.lastUpdate = new Date().toISOString();
+  
+  try {
+    localStorage.setItem('learningPatterns', JSON.stringify(learningCache));
+  } catch (e) {
+    console.error('Error saving learning patterns:', e);
+  }
 }
 
 function updatePatternAnalysis() {
