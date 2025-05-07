@@ -462,16 +462,55 @@ function analyzePatterns() {
     const progressMetrics = metrics.find(category => 
       category.category === 'Progress')?.metrics || [];
     
+    // Get all the key metrics
     const avgScore = parseFloat(performanceMetrics.find(m => 
       m.name === 'Average First Test Result')?.value) || 0;
     const perfectScores = parseInt(performanceMetrics.find(m => 
       m.name === 'Perfect Scores')?.value) || 0;
     const firstTimePassRate = parseFloat(progressMetrics.find(m => 
       m.name === 'First-Time Pass Rate')?.value) || 0;
+    const avgImprovement = parseFloat(progressMetrics.find(m => 
+      m.name === 'Average Score Improvement')?.value) || 0;
+    const weeklyTrend = progressMetrics.find(m => 
+      m.name === 'Weekly Trend')?.value || '0%';
+    
+    // Analyze learning patterns
+    const patterns = [];
+    
+    // Performance pattern
+    if (avgScore >= 17) {
+      patterns.push('High performance with consistent scores above 17');
+    } else if (avgScore < 14) {
+      patterns.push('Struggling to meet passing threshold');
+    }
+    
+    // Learning curve pattern
+    if (avgImprovement > 3) {
+      patterns.push('Strong improvement from retakes (+3 points average)');
+    } else if (avgImprovement > 0) {
+      patterns.push('Gradual improvement shown in retakes');
+    }
+    
+    // Consistency pattern
+    if (perfectScores > 0 && firstTimePassRate > 80) {
+      patterns.push('Consistent high achiever with perfect scores');
+    } else if (firstTimePassRate > 70) {
+      patterns.push('Generally consistent passing performance');
+    } else if (firstTimePassRate < 50) {
+      patterns.push('Inconsistent performance, may need additional support');
+    }
+    
+    // Trend pattern
+    const trendValue = parseFloat(weeklyTrend);
+    if (trendValue > 10) {
+      patterns.push('Strong upward trend in recent performance');
+    } else if (trendValue < -10) {
+      patterns.push('Declining trend needs attention');
+    }
     
     return {
-      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Analysis`,
-      description: `Average score: ${avgScore.toFixed(1)}, Perfect scores: ${perfectScores}, First-time pass rate: ${firstTimePassRate}%`
+      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Learning Pattern`,
+      description: patterns.join('. ') || 'Insufficient data to determine patterns'
     };
   });
 }
@@ -485,6 +524,11 @@ function updatePatternAnalysis() {
     <div class="pattern-item">
       <h4>${pattern.title}</h4>
       <p>${pattern.description}</p>
+      ${pattern.description !== 'Insufficient data to determine patterns' ? 
+        `<div class="pattern-indicators">
+          <i class="fas fa-graduation-cap"></i>
+          <span class="pattern-tag">Learning Pattern Identified</span>
+        </div>` : ''}
     </div>
   `).join('');
 }

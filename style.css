@@ -869,6 +869,22 @@ canvas {
   margin-bottom: 8px;
 }
 
+.pattern-indicators {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-color);
+  font-size: 0.9em;
+}
+
+.pattern-tag {
+  background: rgba(3, 169, 244, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
 /* Achievement styles */
 .achievement-item {
   display: flex;
