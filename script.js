@@ -661,68 +661,57 @@ function updatePredictiveInsights() {
   if (!predictiveInsights || !allMetrics) return;
 
   const insights = Object.entries(allMetrics).map(([quizType, metrics]) => {
-    const performanceMetrics = metrics.find(category => 
-      category.category === 'Performance')?.metrics || [];
-    const progressMetrics = metrics.find(category => 
-      category.category === 'Progress')?.metrics || [];
+    // Get historical data
+    const performanceHistory = extractPerformanceHistory(metrics);
+    const learningRate = calculateLearningRate(performanceHistory);
+    const trend = calculateTrendLine(performanceHistory);
     
-    // Get key metrics
-    const avgScore = parseFloat(performanceMetrics.find(m => 
-      m.name === 'Average First Test Result')?.value) || 0;
-    const firstTimePassRate = parseFloat(progressMetrics.find(m => 
-      m.name === 'First-Time Pass Rate')?.value) || 0;
-    const weeklyTrend = progressMetrics.find(m => 
-      m.name === 'Weekly Trend')?.value || '0%';
-    const improvement = parseFloat(progressMetrics.find(m => 
-      m.name === 'Average Score Improvement')?.value) || 0;
-    
-    // Analyze trends
-    const trendValue = parseFloat(weeklyTrend);
-    const isImprovingTrend = trendValue > 0;
-    const hasStrongImprovement = improvement >= 2;
-    
-    // Calculate predicted metrics
-    const predictedNextScore = avgScore * (1 + (trendValue / 100));
-    const predictedPassProbability = calculatePassProbability(avgScore, firstTimePassRate, trendValue);
-    
-    // Generate prediction and recommendation
-    let prediction, recommendation;
-    
-    if (avgScore >= 17) {
-      prediction = `High probability (${predictedPassProbability}%) of maintaining excellent performance. Predicted next score: ${predictedNextScore.toFixed(1)}`;
-      recommendation = hasStrongImprovement ? 
-        'Consider mentoring others to maintain high scores' :
-        'Focus on achieving perfect scores consistently';
-    } else if (avgScore >= 14) {
-      prediction = `Moderate probability (${predictedPassProbability}%) of improving. Predicted next score: ${predictedNextScore.toFixed(1)}`;
-      recommendation = isImprovingTrend ?
-        'Keep current study pattern to maintain improvement trend' :
-        'Consider increasing practice frequency to boost scores';
-    } else {
-      prediction = `Lower probability (${predictedPassProbability}%) of passing next attempt. Predicted score: ${predictedNextScore.toFixed(1)}`;
-      recommendation = hasStrongImprovement ?
-        'Current study methods are working. Maintain this approach' :
-        'Review past test feedback and focus on problem areas';
-    }
+    // Current metrics for baseline
+    const currentMetrics = {
+      avgScore: parseFloat(metrics.find(category => 
+        category.category === 'Performance')?.metrics.find(m => 
+        m.name === 'Average First Test Result')?.value) || 0,
+      passRate: parseFloat(metrics.find(category => 
+        category.category === 'Progress')?.metrics.find(m => 
+        m.name === 'First-Time Pass Rate')?.value) || 0,
+      improvement: parseFloat(metrics.find(category => 
+        category.category === 'Progress')?.metrics.find(m => 
+        m.name === 'Average Score Improvement')?.value) || 0
+    };
+
+    // Calculate predictions
+    const predictions = generatePredictions(currentMetrics, trend, learningRate);
+    const confidence = calculateConfidenceScore(performanceHistory, trend.r2);
 
     return {
-      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Prediction`,
-      prediction: prediction,
-      recommendation: recommendation,
-      trend: trendValue,
-      confidence: calculatePredictionConfidence(avgScore, firstTimePassRate, trendValue)
+      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Forecast`,
+      shortTerm: predictions.shortTerm,
+      longTerm: predictions.longTerm,
+      confidence,
+      trend: trend.slope
     };
   });
 
-  // Render insights with confidence indicators
   predictiveInsights.innerHTML = insights.map(insight => `
     <div class="insight-item ${getConfidenceClass(insight.confidence)}">
       <h4>${insight.title}</h4>
       <div class="prediction-details">
-        <p class="prediction"><i class="fas fa-chart-line"></i> ${insight.prediction}</p>
-        <p class="recommendation"><i class="fas fa-lightbulb"></i> ${insight.recommendation}</p>
+        <div class="prediction-short-term">
+          <p><i class="fas fa-clock"></i> Next Attempt:</p>
+          <ul>
+            <li>Predicted Score: ${insight.shortTerm.score.toFixed(1)}</li>
+            <li>Pass Probability: ${insight.shortTerm.passProbability.toFixed(1)}%</li>
+          </ul>
+        </div>
+        <div class="prediction-long-term">
+          <p><i class="fas fa-calendar"></i> Next 30 Days:</p>
+          <ul>
+            <li>Average Score Trend: ${insight.longTerm.averageScore.toFixed(1)}</li>
+            <li>Expected Improvement: ${insight.longTerm.improvement.toFixed(1)} points</li>
+          </ul>
+        </div>
         <div class="confidence-indicator">
-          <span class="confidence-label">Prediction Confidence</span>
+          <span class="confidence-label">Model Confidence: ${insight.confidence.toFixed(1)}%</span>
           <div class="confidence-bar" style="--confidence: ${insight.confidence}%"></div>
         </div>
       </div>
@@ -730,39 +719,108 @@ function updatePredictiveInsights() {
   `).join('');
 }
 
-function calculatePassProbability(avgScore, passRate, trend) {
-  // Base probability on current pass rate
-  let probability = passRate;
+function extractPerformanceHistory(metrics) {
+  // Extract historical scores and timestamps from metrics
+  const performanceMetrics = metrics.find(category => 
+    category.category === 'Performance')?.metrics || [];
+  const progressMetrics = metrics.find(category => 
+    category.category === 'Progress')?.metrics || [];
   
-  // Adjust based on average score
-  if (avgScore >= 17) {
-    probability += 15;
-  } else if (avgScore >= 14) {
-    probability += 5;
-  }
-  
-  // Adjust based on trend
-  probability += (trend / 2);
-  
-  // Ensure probability is within bounds
-  return Math.min(Math.max(probability, 0), 100).toFixed(1);
+  // Convert raw data into time series
+  return {
+    scores: performanceMetrics.map(m => parseFloat(m.value) || 0),
+    timestamps: performanceMetrics.map((_, i) => i),
+    improvements: progressMetrics.filter(m => 
+      m.name === 'Average Score Improvement').map(m => parseFloat(m.value) || 0)
+  };
 }
 
-function calculatePredictionConfidence(avgScore, passRate, trend) {
-  // Base confidence on data reliability
-  let confidence = 50; // Start with base confidence
+function calculateTrendLine(history) {
+  const n = history.scores.length;
+  if (n < 2) return { slope: 0, intercept: 0, r2: 0 };
+
+  // Calculate linear regression
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  history.timestamps.forEach((x, i) => {
+    const y = history.scores[i];
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumX2 += x * x;
+  });
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
   
-  // Adjust based on score consistency
-  confidence += avgScore >= 14 ? 20 : 10;
+  // Calculate R-squared
+  const yMean = sumY / n;
+  let totalSS = 0, residualSS = 0;
+  history.timestamps.forEach((x, i) => {
+    const y = history.scores[i];
+    const yPred = slope * x + intercept;
+    totalSS += Math.pow(y - yMean, 2);
+    residualSS += Math.pow(y - yPred, 2);
+  });
+  const r2 = 1 - (residualSS / totalSS);
+
+  return { slope, intercept, r2 };
+}
+
+function calculateLearningRate(history) {
+  if (!history.improvements.length) return 0;
+  return history.improvements.reduce((sum, val) => sum + val, 0) / history.improvements.length;
+}
+
+function generatePredictions(currentMetrics, trend, learningRate) {
+  // Short-term prediction (next attempt)
+  const shortTerm = {
+    score: Math.min(20, currentMetrics.avgScore + (trend.slope * learningRate)),
+    passProbability: calculatePassProbability(currentMetrics.avgScore, trend.slope)
+  };
+
+  // Long-term prediction (30 days)
+  const longTerm = {
+    averageScore: Math.min(20, currentMetrics.avgScore + (trend.slope * 30 * learningRate)),
+    improvement: learningRate * 30
+  };
+
+  return { shortTerm, longTerm };
+}
+
+function calculatePassProbability(currentScore, trend) {
+  const base = currentScore >= 14 ? 85 : 50;
+  const trendModifier = trend > 0 ? 15 : trend < 0 ? -15 : 0;
+  return Math.min(100, Math.max(0, base + trendModifier));
+}
+
+function calculateConfidenceScore(history, r2) {
+  const dataPoints = history.scores.length;
+  const dataQuality = r2 * 100;
+  const consistency = calculateConsistency(history.scores);
   
-  // Adjust based on pass rate stability
-  confidence += passRate >= 70 ? 15 : 5;
+  // Weight factors
+  const weights = {
+    dataPoints: 0.3,
+    dataQuality: 0.4,
+    consistency: 0.3
+  };
   
-  // Adjust based on trend strength
-  confidence += Math.abs(trend) > 10 ? 15 : 5;
+  // Calculate weighted score
+  return Math.min(100, Math.max(0,
+    (Math.min(dataPoints / 10, 1) * 100 * weights.dataPoints) +
+    (dataQuality * weights.dataQuality) +
+    (consistency * weights.consistency)
+  ));
+}
+
+function calculateConsistency(scores) {
+  if (scores.length < 2) return 100;
   
-  // Ensure confidence is within bounds
-  return Math.min(Math.max(confidence, 0), 100);
+  const variations = scores.slice(1).map((score, i) => 
+    Math.abs(score - scores[i]) / scores[i]);
+  
+  const avgVariation = variations.reduce((sum, val) => sum + val, 0) / variations.length;
+  return Math.max(0, 100 - (avgVariation * 100));
 }
 
 function getConfidenceClass(confidence) {
