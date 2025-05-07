@@ -741,6 +741,87 @@ canvas {
   top: 10px;
 }
 
+/* Prediction Details */
+.insight-item {
+  padding: 20px;
+  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+  border-left: 4px solid var(--primary-color);
+  transition: transform var(--transition-speed) ease;
+}
+
+.prediction-details {
+  margin-top: 12px;
+}
+
+.prediction-details p {
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prediction-details i {
+  color: var(--primary-color);
+}
+
+.confidence-indicator {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.confidence-label {
+  font-size: 0.85em;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.confidence-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.confidence-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: var(--confidence);
+  background: var(--primary-color);
+  border-radius: 2px;
+}
+
+.high-confidence {
+  border-left-color: var(--success-color);
+}
+
+.medium-confidence {
+  border-left-color: var(--warning-color);
+}
+
+.low-confidence {
+  border-left-color: var(--error-color);
+}
+
+.high-confidence .confidence-bar::after {
+  background: var(--success-color);
+}
+
+.medium-confidence .confidence-bar::after {
+  background: var(--warning-color);
+}
+
+.low-confidence .confidence-bar::after {
+  background: var(--error-color);
+}
+
 /* Performance Chart Section */
 .performance-section {
   margin-top: 30px;

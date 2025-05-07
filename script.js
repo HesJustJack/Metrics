@@ -666,32 +666,109 @@ function updatePredictiveInsights() {
     const progressMetrics = metrics.find(category => 
       category.category === 'Progress')?.metrics || [];
     
+    // Get key metrics
     const avgScore = parseFloat(performanceMetrics.find(m => 
       m.name === 'Average First Test Result')?.value) || 0;
     const firstTimePassRate = parseFloat(progressMetrics.find(m => 
       m.name === 'First-Time Pass Rate')?.value) || 0;
+    const weeklyTrend = progressMetrics.find(m => 
+      m.name === 'Weekly Trend')?.value || '0%';
+    const improvement = parseFloat(progressMetrics.find(m => 
+      m.name === 'Average Score Improvement')?.value) || 0;
     
-    let recommendation;
-    if (avgScore < 14) {
-      recommendation = 'Focus on improving initial scores through better preparation.';
-    } else if (firstTimePassRate < 70) {
-      recommendation = 'Maintain good average scores while working on consistency.';
+    // Analyze trends
+    const trendValue = parseFloat(weeklyTrend);
+    const isImprovingTrend = trendValue > 0;
+    const hasStrongImprovement = improvement >= 2;
+    
+    // Calculate predicted metrics
+    const predictedNextScore = avgScore * (1 + (trendValue / 100));
+    const predictedPassProbability = calculatePassProbability(avgScore, firstTimePassRate, trendValue);
+    
+    // Generate prediction and recommendation
+    let prediction, recommendation;
+    
+    if (avgScore >= 17) {
+      prediction = `High probability (${predictedPassProbability}%) of maintaining excellent performance. Predicted next score: ${predictedNextScore.toFixed(1)}`;
+      recommendation = hasStrongImprovement ? 
+        'Consider mentoring others to maintain high scores' :
+        'Focus on achieving perfect scores consistently';
+    } else if (avgScore >= 14) {
+      prediction = `Moderate probability (${predictedPassProbability}%) of improving. Predicted next score: ${predictedNextScore.toFixed(1)}`;
+      recommendation = isImprovingTrend ?
+        'Keep current study pattern to maintain improvement trend' :
+        'Consider increasing practice frequency to boost scores';
     } else {
-      recommendation = 'Strong performance. Consider helping others improve.';
+      prediction = `Lower probability (${predictedPassProbability}%) of passing next attempt. Predicted score: ${predictedNextScore.toFixed(1)}`;
+      recommendation = hasStrongImprovement ?
+        'Current study methods are working. Maintain this approach' :
+        'Review past test feedback and focus on problem areas';
     }
-    
+
     return {
-      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Insights`,
-      description: recommendation
+      title: `${quizType.charAt(0).toUpperCase() + quizType.slice(1)} Prediction`,
+      prediction: prediction,
+      recommendation: recommendation,
+      trend: trendValue,
+      confidence: calculatePredictionConfidence(avgScore, firstTimePassRate, trendValue)
     };
   });
 
+  // Render insights with confidence indicators
   predictiveInsights.innerHTML = insights.map(insight => `
-    <div class="insight-item">
+    <div class="insight-item ${getConfidenceClass(insight.confidence)}">
       <h4>${insight.title}</h4>
-      <p>${insight.description}</p>
+      <div class="prediction-details">
+        <p class="prediction"><i class="fas fa-chart-line"></i> ${insight.prediction}</p>
+        <p class="recommendation"><i class="fas fa-lightbulb"></i> ${insight.recommendation}</p>
+        <div class="confidence-indicator">
+          <span class="confidence-label">Prediction Confidence</span>
+          <div class="confidence-bar" style="--confidence: ${insight.confidence}%"></div>
+        </div>
+      </div>
     </div>
   `).join('');
+}
+
+function calculatePassProbability(avgScore, passRate, trend) {
+  // Base probability on current pass rate
+  let probability = passRate;
+  
+  // Adjust based on average score
+  if (avgScore >= 17) {
+    probability += 15;
+  } else if (avgScore >= 14) {
+    probability += 5;
+  }
+  
+  // Adjust based on trend
+  probability += (trend / 2);
+  
+  // Ensure probability is within bounds
+  return Math.min(Math.max(probability, 0), 100).toFixed(1);
+}
+
+function calculatePredictionConfidence(avgScore, passRate, trend) {
+  // Base confidence on data reliability
+  let confidence = 50; // Start with base confidence
+  
+  // Adjust based on score consistency
+  confidence += avgScore >= 14 ? 20 : 10;
+  
+  // Adjust based on pass rate stability
+  confidence += passRate >= 70 ? 15 : 5;
+  
+  // Adjust based on trend strength
+  confidence += Math.abs(trend) > 10 ? 15 : 5;
+  
+  // Ensure confidence is within bounds
+  return Math.min(Math.max(confidence, 0), 100);
+}
+
+function getConfidenceClass(confidence) {
+  if (confidence >= 80) return 'high-confidence';
+  if (confidence >= 60) return 'medium-confidence';
+  return 'low-confidence';
 }
 
 function updateInsightDescription(data) {
